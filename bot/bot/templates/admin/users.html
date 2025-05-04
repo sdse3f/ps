@@ -1,0 +1,261 @@
+{% extends "layout.html" %}
+
+{% block title %}إدارة المستخدمين - نقطة وصل{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>إدارة المستخدمين</h1>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-right me-2"></i>العودة للوحة التحكم
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" name="search" placeholder="بحث بالاسم أو البريد الإلكتروني" 
+                               value="{{ search_query or '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" name="status">
+                            <option value="">جميع الحالات</option>
+                            <option value="active" {{ 'selected' if status == 'active' }}>نشط</option>
+                            <option value="banned" {{ 'selected' if status == 'banned' }}>محظور</option>
+                            <option value="admin" {{ 'selected' if status == 'admin' }}>مسؤول</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" name="verified">
+                            <option value="">جميع الحسابات</option>
+                            <option value="1" {{ 'selected' if verified == '1' }}>موثق</option>
+                            <option value="0" {{ 'selected' if verified == '0' }}>غير موثق</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-2"></i>بحث
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>المستخدم</th>
+                                <th>البريد الإلكتروني</th>
+                                <th>الحالة</th>
+                                <th>تاريخ التسجيل</th>
+                                <th>آخر دخول</th>
+                                <th>المنتجات</th>
+                                <th>إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="{{ user.profile_image_url if user.profile_image_url else (user.profile_image | image_url(folder='users')) }}" 
+                                        alt="{{ user.name }}" 
+                                        class="rounded-circle me-2"
+                                        width="32" height="32"
+                                        style="object-fit: cover;">
+                                        <div>
+                                            <a href="{{ url_for('user.public_profile', user_id=user.id) }}" 
+                                               class="text-decoration-none">
+                                                {{ user.name }}
+                                            </a>
+                                            {% if user.is_admin %}
+                                            <span class="badge bg-primary ms-2">مسؤول</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ user.email }}</td>
+                                <td>
+                                    {% if user.is_banned %}
+                                        <span class="badge bg-danger">محظور</span>
+                                    {% elif user.is_verified %}
+                                        <span class="badge bg-success">نشط</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">غير موثق</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ user.created_at | format_date }}</td>
+                                <td>{{ user.last_login | time_since if user.last_login else 'لم يسجل دخول' }}</td>
+                                <td>{{ user.products|length }}</td>
+                                <td>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            إجراءات
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <a class="dropdown-item" href="{{ url_for('user.public_profile', user_id=user.id) }}">
+                                                    <i class="fas fa-eye me-2"></i>عرض الملف الشخصي
+                                                </a>
+                                            </li>
+                                            {% if not user.is_admin %}
+                                            <li>
+                                                {% if user.is_banned %}
+                                                <button class="dropdown-item" onclick="confirmAction('unban', {{ user.id }}, '{{ user.name }}')">
+                                                    <i class="fas fa-user-check me-2"></i>إلغاء الحظر
+                                                </button>
+                                                {% else %}
+                                                <button class="dropdown-item text-danger" onclick="confirmAction('ban', {{ user.id }}, '{{ user.name }}')">
+                                                    <i class="fas fa-user-slash me-2"></i>حظر المستخدم
+                                                </button>
+                                                {% endif %}
+                                            </li>
+                                            {% endif %}
+                                            {% if not user.is_admin and not user.is_verified %}
+                                            <li>
+                                                <button class="dropdown-item" onclick="confirmAction('verify', {{ user.id }}, '{{ user.name }}')">
+                                                    <i class="fas fa-check-circle me-2"></i>توثيق الحساب
+                                                </button>
+                                            </li>
+                                            {% endif %}
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <a class="dropdown-item" href="{{ url_for('admin.user_products', user_id=user.id) }}">
+                                                    <i class="fas fa-shopping-bag me-2"></i>عرض المنتجات
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="{{ url_for('admin.user_reports', user_id=user.id) }}">
+                                                    <i class="fas fa-flag me-2"></i>عرض البلاغات
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center">لا يوجد مستخدمون</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if pagination and pagination.pages > 1 %}
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <!-- Previous Page -->
+                        <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+                            <a class="page-link" href="{{ url_for('admin.users', **request.args | dict(page=pagination.prev_num)) if pagination.has_prev else '#' }}">
+                                السابق
+                            </a>
+                        </li>
+                        
+                        <!-- Page Numbers -->
+                        {% for page in pagination.iter_pages() %}
+                            {% if page %}
+                                <li class="page-item {{ 'active' if page == pagination.page }}">
+                                    <a class="page-link" href="{{ url_for('admin.users', **request.args | dict(page=page)) }}">
+                                        {{ page }}
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        <!-- Next Page -->
+                        <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+                            <a class="page-link" href="{{ url_for('admin.users', **request.args | dict(page=pagination.next_num)) if pagination.has_next else '#' }}">
+                                التالي
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Confirmation Modal -->
+<div class="modal fade" id="actionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="actionModalTitle">تأكيد الإجراء</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="actionForm" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="user_id" id="userIdInput">
+                <input type="hidden" name="action" id="actionInput">
+                <div class="modal-body" id="actionModalBody">
+                    <!-- Will be filled by JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn" id="actionSubmitBtn">تأكيد</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmAction(action, userId, userName) {
+    const modal = new bootstrap.Modal(document.getElementById('actionModal'));
+    const form = document.getElementById('actionForm');
+    const title = document.getElementById('actionModalTitle');
+    const body = document.getElementById('actionModalBody');
+    const submitBtn = document.getElementById('actionSubmitBtn');
+    
+    document.getElementById('userIdInput').value = userId;
+    document.getElementById('actionInput').value = action;
+    
+    switch(action) {
+        case 'ban':
+            title.textContent = 'حظر المستخدم';
+            body.textContent = `هل أنت متأكد من حظر المستخدم "${userName}"؟`;
+            submitBtn.className = 'btn btn-danger';
+            submitBtn.textContent = 'حظر';
+            form.action = '{{ url_for("admin.ban_user") }}';
+            break;
+        case 'unban':
+            title.textContent = 'إلغاء حظر المستخدم';
+            body.textContent = `هل أنت متأكد من إلغاء حظر المستخدم "${userName}"؟`;
+            submitBtn.className = 'btn btn-success';
+            submitBtn.textContent = 'إلغاء الحظر';
+            form.action = '{{ url_for("admin.unban_user") }}';
+            break;
+        case 'verify':
+            title.textContent = 'توثيق الحساب';
+            body.textContent = `هل أنت متأكد من توثيق حساب "${userName}"؟`;
+            submitBtn.className = 'btn btn-primary';
+            submitBtn.textContent = 'توثيق';
+            form.action = '{{ url_for("admin.verify_user") }}';
+            break;
+    }
+    
+    modal.show();
+}
+</script>
+{% endblock %}

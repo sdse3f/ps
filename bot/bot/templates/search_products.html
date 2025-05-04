@@ -1,0 +1,281 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ page_title }} - نقطة وصل{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Filters Sidebar -->
+    <div class="col-lg-3">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h5 class="card-title mb-4">تصفية النتائج</h5>
+                
+                <form id="search-form" method="GET" action="{{ url_for('products.search') }}">
+                    <!-- Search Query -->
+                    <div class="mb-4">
+                        <label for="search-query" class="form-label">البحث</label>
+                        <input type="text" class="form-control" id="search-query" name="q" 
+                               value="{{ search_query or '' }}" placeholder="ابحث عن منتجات...">
+                    </div>
+                    
+                    <!-- Category Filter -->
+                    <div class="mb-4">
+                        <label for="category-filter" class="form-label">التصنيف</label>
+                        <select class="form-select" id="category-filter" name="category_id">
+                            <option value="">جميع التصنيفات</option>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}" 
+                                        {{ 'selected' if selected_category_id|string == category.id|string }}>
+                                    {{ category.name }}
+                                </option>
+                                {% for subcategory in category.subcategories %}
+                                    <option value="{{ subcategory.id }}" 
+                                            {{ 'selected' if selected_category_id|string == subcategory.id|string }}>
+                                        &nbsp;&nbsp;&nbsp;{{ subcategory.name }}
+                                    </option>
+                                {% endfor %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Location Filter -->
+                    <div class="mb-4">
+                        <label for="location-filter" class="form-label">الموقع</label>
+                        <select class="form-select" id="location-filter" name="location">
+                            <option value="">جميع المواقع</option>
+                            {% for location in locations %}
+                                <option value="{{ location.id }}" 
+                                        {{ 'selected' if selected_location == location.id }}>
+                                    {{ location.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Price Range -->
+                    <div class="mb-4">
+                        <label class="form-label">نطاق السعر</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <input type="number" class="form-control" name="min_price" 
+                                       placeholder="من" value="{{ min_price or '' }}">
+                            </div>
+                            <div class="col-6">
+                                <input type="number" class="form-control" name="max_price" 
+                                       placeholder="إلى" value="{{ max_price or '' }}">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Condition Filter -->
+                    <div class="mb-4">
+                        <label class="form-label">حالة المنتج</label>
+                        {% for condition in conditions %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="condition" 
+                                   value="{{ condition.id }}" id="condition-{{ condition.id }}"
+                                   {{ 'checked' if condition.id in selected_conditions }}>
+                            <label class="form-check-label" for="condition-{{ condition.id }}">
+                                {{ condition.name }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Featured Products Only -->
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="featured" 
+                                   id="featured-only" value="true"
+                                   {{ 'checked' if featured_only }}>
+                            <label class="form-check-label" for="featured-only">
+                                المنتجات المميزة فقط
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter me-2"></i>تطبيق الفلاتر
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Products Grid -->
+    <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>{{ page_title }}</h2>
+            
+            <!-- Sort Options -->
+            <div class="d-flex gap-2">
+                <select class="form-select form-select-sm" id="sort-by" name="sort_by" style="width: auto;">
+                    <option value="created_at" {{ 'selected' if sort_by == 'created_at' }}>الأحدث</option>
+                    <option value="price" {{ 'selected' if sort_by == 'price' }}>السعر</option>
+                    <option value="views" {{ 'selected' if sort_by == 'views' }}>الأكثر مشاهدة</option>
+                </select>
+                
+                <select class="form-select form-select-sm" id="sort-dir" name="sort_dir" style="width: auto;">
+                    <option value="desc" {{ 'selected' if sort_dir == 'desc' }}>تنازلي</option>
+                    <option value="asc" {{ 'selected' if sort_dir == 'asc' }}>تصاعدي</option>
+                </select>
+            </div>
+        </div>
+        
+        {% if products %}
+        <div class="row g-4">
+            {% for product in products %}
+            <div class="col-md-4 col-sm-6">
+                <div class="card h-100 product-card">
+                    <div class="position-relative">
+                        <a href="{{ url_for('products.view', product_id=product.id) }}">
+                            {% if product.images and product.images|length > 0 %}
+                                {# Find primary image #}
+                                {% set primary_image = None %}
+                                {% for image in product.images if primary_image is none and image.is_primary %}
+                                    {% set primary_image = image %}
+                                {% endfor %}
+                                {% if not primary_image %}
+                                    {% set primary_image = product.images[0] %}
+                                {% endif %}
+                                <!-- استخدام URL مباشرة للصورة -->
+                                <img src="{{ primary_image.url }}" 
+                                     class="card-img-top" alt="{{ product.title }}">
+                            {% else %}
+                                <img src="{{ url_for('static', filename='images/products/product-placeholder.jpg') }}" 
+                                     class="card-img-top" alt="{{ product.title }}">
+                            {% endif %}
+                        </a>
+                        {% if product.is_featured %}
+                        <span class="badge bg-warning position-absolute top-0 start-0 m-2">
+                            <i class="fas fa-star"></i> مميز
+                        </span>
+                        {% endif %}
+                        {% if current_user.is_authenticated %}
+                        <button class="btn btn-light btn-sm position-absolute top-0 end-0 m-2 favorite-btn {{ 'active' if product.is_favorite else '' }}" 
+                                data-product-id="{{ product.id }}">
+                            <i class="fas fa-heart {{ 'text-danger' if product.is_favorite else '' }}"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title text-truncate">{{ product.title }}</h5>
+                        <p class="card-text mb-2">
+                            <span class="text-primary fw-bold">{{ product.price | format_price }}</span>
+                            <small class="text-muted">{{ product.currency }}</small>
+                        </p>
+                        <p class="card-text">
+                            <small class="text-muted">
+                                <i class="fas fa-map-marker-alt"></i> {{ product.location }}
+                            </small>
+                        </p>
+                    </div>
+                    <div class="card-footer bg-transparent border-top-0">
+                        <small class="text-muted">
+                            <i class="far fa-clock"></i> {{ product.created_at | time_since }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Pagination -->
+        {% if pagination.pages > 1 %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                <!-- Previous Page -->
+                <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+                    <a class="page-link" href="{{ url_for('products.search', q=search_query, category_id=selected_category_id, location=selected_location, min_price=min_price, max_price=max_price, featured=featured_only, sort_by=sort_by, sort_dir=sort_dir, page=pagination.prev_num) if pagination.has_prev else '#' }}">
+                        السابق
+                    </a>
+                </li>
+                
+                <!-- Page Numbers -->
+                {% for page in pagination.iter_pages() %}
+                    {% if page %}
+                        <li class="page-item {{ 'active' if page == pagination.page }}">
+                            <a class="page-link" href="{{ url_for('products.search', q=search_query, category_id=selected_category_id, location=selected_location, min_price=min_price, max_price=max_price, featured=featured_only, sort_by=sort_by, sort_dir=sort_dir, page=page) }}">
+                                {{ page }}
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                <!-- Next Page -->
+                <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+                    <a class="page-link" href="{{ url_for('products.search', q=search_query, category_id=selected_category_id, location=selected_location, min_price=min_price, max_price=max_price, featured=featured_only, sort_by=sort_by, sort_dir=sort_dir, page=pagination.next_num) if pagination.has_next else '#' }}">
+                        التالي
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        {% endif %}
+        
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-search fa-4x text-muted mb-4"></i>
+            <h3>لم يتم العثور على منتجات</h3>
+            <p class="text-muted mb-4">جرب تغيير معايير البحث أو مسح بعض الفلاتر</p>
+            <a href="{{ url_for('products.search') }}" class="btn btn-primary">
+                <i class="fas fa-redo me-2"></i>إعادة تعيين الفلاتر
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Handle sort changes
+    document.getElementById('sort-by').addEventListener('change', function() {
+        this.form.submit();
+    });
+    
+    document.getElementById('sort-dir').addEventListener('change', function() {
+        this.form.submit();
+    });
+    
+    // Attach sort selects to the search form
+    const sortBy = document.getElementById('sort-by');
+    const sortDir = document.getElementById('sort-dir');
+    const searchForm = document.getElementById('search-form');
+    
+    if (sortBy && sortDir && searchForm) {
+        sortBy.name = 'sort_by';
+        sortDir.name = 'sort_dir';
+        searchForm.appendChild(sortBy);
+        searchForm.appendChild(sortDir);
+    }
+    
+    // Favorite functionality
+    document.querySelectorAll('.favorite-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const productId = this.dataset.productId;
+            
+            fetch(`/api/products/${productId}/favorite`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.classList.toggle('active');
+                    const icon = this.querySelector('i');
+                    icon.classList.toggle('text-danger');
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

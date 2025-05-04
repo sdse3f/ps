@@ -1,0 +1,321 @@
+{% extends "layout.html" %}
+
+{% block title %}تعديل منتج - نقطة وصل{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h2 class="mb-4">تعديل منتج</h2>
+                
+                <form method="POST" action="{{ url_for('products.edit', product_id=product.id) }}" enctype="multipart/form-data" class="needs-validation" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <!-- Basic Information -->
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2">المعلومات الأساسية</h5>
+                        
+                        <div class="mb-3">
+                            <label for="title" class="form-label">عنوان المنتج</label>
+                            <input type="text" class="form-control" id="title" name="title" value="{{ product.title }}" required>
+                            <div class="invalid-feedback">
+                                يرجى إدخال عنوان المنتج
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="category_id" class="form-label">التصنيف</label>
+                            <select class="form-select" id="category_id" name="category_id" required>
+                                <option value="">اختر التصنيف</option>
+                                {% for category in categories %}
+                                    <optgroup label="{{ category.name }}">
+                                        <option value="{{ category.id }}" {{ 'selected' if product.category_id == category.id }}>{{ category.name }}</option>
+                                        {% for subcategory in category.subcategories %}
+                                            <option value="{{ subcategory.id }}" {{ 'selected' if product.category_id == subcategory.id }}>
+                                                &nbsp;&nbsp;&nbsp;{{ subcategory.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </optgroup>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">
+                                يرجى اختيار التصنيف
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="price" class="form-label">السعر</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="price" name="price" 
+                                           min="0" step="0.01" value="{{ product.price }}" required>
+                                    <select class="form-select" name="currency" style="max-width: 100px;">
+                                        <option value="SYP" {{ 'selected' if product.currency == 'SYP' }}>ل.س</option>
+                                        <option value="USD" {{ 'selected' if product.currency == 'USD' }}>$</option>
+                                    </select>
+                                </div>
+                                <div class="invalid-feedback">
+                                    يرجى إدخال السعر
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="condition" class="form-label">حالة المنتج</label>
+                                <select class="form-select" id="condition" name="condition" required>
+                                    <option value="">اختر الحالة</option>
+                                    {% for condition in conditions %}
+                                        <option value="{{ condition.id }}" {{ 'selected' if product.condition == condition.id }}>{{ condition.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">
+                                    يرجى اختيار حالة المنتج
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="location" class="form-label">الموقع</label>
+                            <select class="form-select" id="location" name="location" required>
+                                <option value="">اختر المحافظة</option>
+                                {% for location in locations %}
+                                    <option value="{{ location.id }}" {{ 'selected' if product.location == location.id }}>{{ location.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">
+                                يرجى اختيار الموقع
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">وصف المنتج</label>
+                            <textarea class="form-control" id="description" name="description" 
+                                    rows="5" required>{{ product.description }}</textarea>
+                            <div class="invalid-feedback">
+                                يرجى إدخال وصف المنتج
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Product Images -->
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2">صور المنتج</h5>
+                        
+                        {% if product.images %}
+                        <div class="mb-3">
+                            <label class="form-label">الصور الحالية</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for image in product.images %}
+                                <div class="position-relative current-image">
+                                    <img src="{{ image.url }}" 
+                                         alt="صورة المنتج"
+                                         class="img-thumbnail" 
+                                         style="width: 100px; height: 100px; object-fit: cover;">
+                                    <div class="mt-1 text-center">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" 
+                                                   name="primary_image_id" value="{{ image.id }}"
+                                                   {{ 'checked' if image.is_primary }}>
+                                            <label class="form-check-label">رئيسية</label>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-danger mt-1" 
+                                                onclick="confirmImageDelete('{{ image.id }}', '{{ csrf_token() }}')">
+                                            <i class="fas fa-trash"></i> حذف
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mb-3">
+                            <label for="product-images" class="form-label">
+                                إضافة صور جديدة (اختياري)
+                            </label>
+                            <input type="file" class="form-control" name="product_images[]" id="product-images" 
+                                   accept="image/*" multiple>
+                            <small class="text-muted">
+                                الصيغ المدعومة: JPG, PNG, GIF (الحد الأقصى 5 ميجابايت لكل صورة)
+                            </small>
+                        </div>
+                        
+                        <div id="image-preview-container" class="d-flex flex-wrap gap-2 mb-3">
+                            <!-- Image previews will be inserted here by JavaScript -->
+                        </div>
+                        
+                        <!-- Primary image input for new images -->
+                        <input type="hidden" id="primary-image" name="primary_image" value="0">
+                    </div>
+                    
+                    <!-- Additional Attributes -->
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2">
+                            المواصفات الإضافية
+                            <button type="button" class="btn btn-sm btn-outline-primary float-end" 
+                                    id="add-attribute-btn">
+                                <i class="fas fa-plus"></i> إضافة مواصفة
+                            </button>
+                        </h5>
+                        
+                        <div id="attributes-container">
+                            {% if product.attributes %}
+                                {% for attr in product.attributes %}
+                                <div class="row attribute-row mb-3">
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control" name="attributes[{{ loop.index0 }}][name]" 
+                                               value="{{ attr.name }}" placeholder="اسم المواصفة">
+                                    </div>
+                                    <div class="col-md-7">
+                                        <input type="text" class="form-control" name="attributes[{{ loop.index0 }}][value]" 
+                                               value="{{ attr.value }}" placeholder="قيمة المواصفة">
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button type="button" class="btn btn-danger remove-attribute">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save me-2"></i>حفظ التغييرات
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Image Delete Modal -->
+<div class="modal fade" id="confirmImageDeleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تأكيد حذف الصورة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>هل أنت متأكد من حذف هذه الصورة؟ لا يمكن التراجع عن هذا الإجراء.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <form id="delete-image-form" method="POST" style="display: inline;">
+                    <input type="hidden" name="csrf_token" id="delete-image-csrf">
+                    <button type="submit" class="btn btn-danger">حذف</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Image preview functionality
+    const imageInput = document.getElementById('product-images');
+    const previewContainer = document.getElementById('image-preview-container');
+    
+    if (imageInput && previewContainer) {
+        imageInput.addEventListener('change', function(e) {
+            const files = e.target.files;
+            previewContainer.innerHTML = '';
+            
+            Array.from(files).forEach((file, index) => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        const previewDiv = document.createElement('div');
+                        previewDiv.className = 'image-upload-preview';
+                        previewDiv.innerHTML = `
+                            <img src="${e.target.result}" alt="معاينة الصورة">
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="radio" name="new_primary_image" 
+                                       value="${index}" ${index === 0 ? 'checked' : ''}>
+                                <label class="form-check-label">صورة رئيسية</label>
+                            </div>
+                        `;
+                        previewContainer.appendChild(previewDiv);
+                    };
+                    
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+    }
+    
+    // Dynamic attributes
+    const addAttributeBtn = document.getElementById('add-attribute-btn');
+    const attributesContainer = document.getElementById('attributes-container');
+    
+    if (addAttributeBtn && attributesContainer) {
+        // Count existing attributes
+        let attributeIndex = attributesContainer.querySelectorAll('.attribute-row').length;
+        
+        addAttributeBtn.addEventListener('click', function() {
+            const attributeRow = document.createElement('div');
+            attributeRow.className = 'row attribute-row mb-3';
+            attributeRow.innerHTML = `
+                <div class="col-md-4">
+                    <input type="text" class="form-control" name="attributes[${attributeIndex}][name]" 
+                           placeholder="اسم المواصفة (مثال: اللون)">
+                </div>
+                <div class="col-md-7">
+                    <input type="text" class="form-control" name="attributes[${attributeIndex}][value]" 
+                           placeholder="قيمة المواصفة (مثال: أحمر)">
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-danger remove-attribute">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            attributesContainer.appendChild(attributeRow);
+            attributeIndex++;
+        });
+        
+        // Handle remove attribute
+        attributesContainer.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-attribute')) {
+                e.target.closest('.attribute-row').remove();
+            }
+        });
+    }
+    
+    // Confirm image delete
+    function confirmImageDelete(imageId, csrfToken) {
+        const modal = new bootstrap.Modal(document.getElementById('confirmImageDeleteModal'));
+        const form = document.getElementById('delete-image-form');
+        
+        // Set form action
+        form.action = `/products/delete-image/${imageId}`;
+        
+        // Set CSRF token
+        document.getElementById('delete-image-csrf').value = csrfToken;
+        
+        modal.show();
+    }
+    
+    // Form validation
+    (function() {
+        'use strict';
+        const forms = document.querySelectorAll('.needs-validation');
+        Array.from(forms).forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    })();
+</script>
+{% endblock %}

@@ -1,0 +1,408 @@
+{% extends "layout.html" %}
+
+{% block title %}منتجات المستخدم {{ user.name }} - نقطة وصل{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>منتجات المستخدم: {{ user.name }}</h1>
+            <div>
+                <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary me-2">
+                    <i class="fas fa-arrow-right me-2"></i>العودة لقائمة المستخدمين
+                </a>
+                <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-tachometer-alt me-2"></i>العودة للوحة التحكم
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <img src="{{ user.profile_image | image_url(folder='users') }}" 
+                         alt="{{ user.name }}" 
+                         class="rounded-circle me-3"
+                         width="50" height="50">
+                    <div>
+                        <h5 class="mb-1">
+                            <a href="{{ url_for('user.public_profile', user_id=user.id) }}" 
+                               class="text-decoration-none">
+                                {{ user.name }}
+                            </a>
+                            {% if user.is_admin %}
+                            <span class="badge bg-primary ms-2">مسؤول</span>
+                            {% endif %}
+                            {% if user.is_banned %}
+                            <span class="badge bg-danger ms-2">محظور</span>
+                            {% endif %}
+                        </h5>
+                        <p class="mb-0 text-muted">
+                            {{ user.email }} | {{ 'موثق' if user.is_verified else 'غير موثق' }} | تاريخ التسجيل: {{ user.created_at | format_date }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">قائمة المنتجات ({{ products|length }})</h5>
+                <ul class="nav nav-tabs card-header-tabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#all-products" data-bs-toggle="tab">جميع المنتجات</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#active-products" data-bs-toggle="tab">نشطة</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#sold-products" data-bs-toggle="tab">مباعة</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#inactive-products" data-bs-toggle="tab">غير نشطة</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="all-products">
+                        {% if products %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>المنتج</th>
+                                        <th>التصنيف</th>
+                                        <th>السعر</th>
+                                        <th>الحالة</th>
+                                        <th>المشاهدات</th>
+                                        <th>تاريخ النشر</th>
+                                        <th>إجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for product in products %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <img src="{{ product.images[0].url if product.images and product.images|length > 0 else url_for('static', filename='images/products/product-placeholder.jpg') }}" 
+                                                     alt="{{ product.title }}" 
+                                                     class="rounded me-2"
+                                                     width="40" height="40"
+                                                     style="object-fit: cover;">
+                                                <div>
+                                                    <a href="{{ url_for('products.view', product_id=product.id) }}" 
+                                                       class="text-decoration-none">
+                                                        {{ product.title }}
+                                                    </a>
+                                                    {% if product.is_featured %}
+                                                    <span class="badge bg-warning ms-2">مميز</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ product.category_rel.name }}</td>
+                                        <td>{{ product.price | format_price }} {{ product.currency }}</td>
+                                        <td>
+                                            {% if product.is_sold %}
+                                                <span class="badge bg-secondary">مباع</span>
+                                            {% elif not product.is_active %}
+                                                <span class="badge bg-danger">غير نشط</span>
+                                            {% else %}
+                                                <span class="badge bg-success">نشط</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ product.views_count }}</td>
+                                        <td>{{ product.created_at | format_date }}</td>
+                                        <td>
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                    إجراءات
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li>
+                                                        <a class="dropdown-item" href="{{ url_for('products.view', product_id=product.id) }}">
+                                                            <i class="fas fa-eye me-2"></i>عرض المنتج
+                                                        </a>
+                                                    </li>
+                                                    {% if not product.is_sold %}
+                                                        {% if product.is_active %}
+                                                        <li>
+                                                            <form action="{{ url_for('admin.deactivate_product') }}" method="POST" style="display: inline;">
+                                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                                <input type="hidden" name="product_id" value="{{ product.id }}">
+                                                                <button type="submit" class="dropdown-item">
+                                                                    <i class="fas fa-ban me-2"></i>إيقاف المنتج
+                                                                </button>
+                                                            </form>
+                                                        </li>
+                                                        {% else %}
+                                                        <li>
+                                                            <form action="{{ url_for('admin.activate_product') }}" method="POST" style="display: inline;">
+                                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                                <input type="hidden" name="product_id" value="{{ product.id }}">
+                                                                <button type="submit" class="dropdown-item">
+                                                                    <i class="fas fa-check-circle me-2"></i>تفعيل المنتج
+                                                                </button>
+                                                            </form>
+                                                        </li>
+                                                        {% endif %}
+                                                        
+                                                        {% if product.is_featured %}
+                                                        <li>
+                                                            <form action="{{ url_for('admin.unfeature_product') }}" method="POST" style="display: inline;">
+                                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                                <input type="hidden" name="product_id" value="{{ product.id }}">
+                                                                <button type="submit" class="dropdown-item">
+                                                                    <i class="fas fa-star-half-alt me-2"></i>إلغاء التمييز
+                                                                </button>
+                                                            </form>
+                                                        </li>
+                                                        {% else %}
+                                                        <li>
+                                                            <form action="{{ url_for('admin.feature_product') }}" method="POST" style="display: inline;">
+                                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                                <input type="hidden" name="product_id" value="{{ product.id }}">
+                                                                <button type="submit" class="dropdown-item">
+                                                                    <i class="fas fa-star me-2"></i>تمييز المنتج
+                                                                </button>
+                                                            </form>
+                                                        </li>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </ul>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-box-open fa-4x text-muted mb-4"></i>
+                            <h3>لا توجد منتجات لهذا المستخدم</h3>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="tab-pane fade" id="active-products">
+                        {% set active_products = products|selectattr('is_active', 'equalto', true)|selectattr('is_sold', 'equalto', false)|list %}
+                        {% if active_products %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>المنتج</th>
+                                        <th>التصنيف</th>
+                                        <th>السعر</th>
+                                        <th>المشاهدات</th>
+                                        <th>تاريخ النشر</th>
+                                        <th>إجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for product in active_products %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <img src="{{ product.images[0].url if product.images and product.images|length > 0 else url_for('static', filename='images/products/product-placeholder.jpg') }}" 
+                                                     alt="{{ product.title }}" 
+                                                     class="rounded me-2"
+                                                     width="40" height="40"
+                                                     style="object-fit: cover;">
+                                                <div>
+                                                    <a href="{{ url_for('products.view', product_id=product.id) }}" 
+                                                       class="text-decoration-none">
+                                                        {{ product.title }}
+                                                    </a>
+                                                    {% if product.is_featured %}
+                                                    <span class="badge bg-warning ms-2">مميز</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ product.category_rel.name }}</td>
+                                        <td>{{ product.price | format_price }} {{ product.currency }}</td>
+                                        <td>{{ product.views_count }}</td>
+                                        <td>{{ product.created_at | format_date }}</td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="{{ url_for('products.view', product_id=product.id) }}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <form action="{{ url_for('admin.deactivate_product') }}" method="POST" style="display: inline;">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-warning">
+                                                        <i class="fas fa-ban"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-box-open fa-4x text-muted mb-4"></i>
+                            <h3>لا توجد منتجات نشطة لهذا المستخدم</h3>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="tab-pane fade" id="sold-products">
+                        {% set sold_products = products|selectattr('is_sold', 'equalto', true)|list %}
+                        {% if sold_products %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>المنتج</th>
+                                        <th>التصنيف</th>
+                                        <th>السعر</th>
+                                        <th>المشتري</th>
+                                        <th>تاريخ النشر</th>
+                                        <th>إجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for product in sold_products %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <img src="{{ product.images[0].url if product.images and product.images|length > 0 else url_for('static', filename='images/products/product-placeholder.jpg') }}" 
+                                                     alt="{{ product.title }}" 
+                                                     class="rounded me-2"
+                                                     width="40" height="40"
+                                                     style="object-fit: cover;">
+                                                <a href="{{ url_for('products.view', product_id=product.id) }}" 
+                                                   class="text-decoration-none">
+                                                    {{ product.title }}
+                                                </a>
+                                            </div>
+                                        </td>
+                                        <td>{{ product.category_rel.name }}</td>
+                                        <td>{{ product.price | format_price }} {{ product.currency }}</td>
+                                        <td>
+                                            {% if product.buyer %}
+                                            <a href="{{ url_for('user.public_profile', user_id=product.buyer.id) }}">
+                                                {{ product.buyer.name }}
+                                            </a>
+                                            {% else %}
+                                            <span class="text-muted">غير محدد</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ product.created_at | format_date }}</td>
+                                        <td>
+                                            <a href="{{ url_for('products.view', product_id=product.id) }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i> عرض
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-shopping-cart fa-4x text-muted mb-4"></i>
+                            <h3>لا توجد منتجات مباعة لهذا المستخدم</h3>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="tab-pane fade" id="inactive-products">
+                        {% set inactive_products = products|selectattr('is_active', 'equalto', false)|selectattr('is_sold', 'equalto', false)|list %}
+                        {% if inactive_products %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>المنتج</th>
+                                        <th>التصنيف</th>
+                                        <th>السعر</th>
+                                        <th>المشاهدات</th>
+                                        <th>تاريخ النشر</th>
+                                        <th>إجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for product in inactive_products %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <img src="{{ product.images[0].url if product.images and product.images|length > 0 else url_for('static', filename='images/products/product-placeholder.jpg') }}" 
+                                                     alt="{{ product.title }}" 
+                                                     class="rounded me-2"
+                                                     width="40" height="40"
+                                                     style="object-fit: cover;">
+                                                <a href="{{ url_for('products.view', product_id=product.id) }}" 
+                                                   class="text-decoration-none">
+                                                    {{ product.title }}
+                                                </a>
+                                            </div>
+                                        </td>
+                                        <td>{{ product.category_rel.name }}</td>
+                                        <td>{{ product.price | format_price }} {{ product.currency }}</td>
+                                        <td>{{ product.views_count }}</td>
+                                        <td>{{ product.created_at | format_date }}</td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="{{ url_for('products.view', product_id=product.id) }}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <form action="{{ url_for('admin.activate_product') }}" method="POST" style="display: inline;">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-success">
+                                                        <i class="fas fa-check-circle"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-ban fa-4x text-muted mb-4"></i>
+                            <h3>لا توجد منتجات غير نشطة لهذا المستخدم</h3>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize Bootstrap tabs
+    document.addEventListener('DOMContentLoaded', function() {
+        var triggerTabList = [].slice.call(document.querySelectorAll('a[data-bs-toggle="tab"]'))
+        triggerTabList.forEach(function (triggerEl) {
+            var tabTrigger = new bootstrap.Tab(triggerEl)
+            
+            triggerEl.addEventListener('click', function (event) {
+                event.preventDefault()
+                tabTrigger.show()
+            })
+        })
+    });
+</script>
+{% endblock %}

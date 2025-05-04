@@ -1,0 +1,140 @@
+{% extends "layout.html" %}
+
+{% block title %}المفضلة - نقطة وصل{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>المنتجات المفضلة</h1>
+            <a href="{{ url_for('products.search') }}" class="btn btn-primary">
+                <i class="fas fa-search me-2"></i>تصفح المزيد من المنتجات
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    {% if products %}
+        {% for product in products %}
+        <div class="col-md-4 col-sm-6 mb-4">
+            <div class="card h-100 product-card">
+                <div class="position-relative">
+                    <a href="{{ url_for('products.view', product_id=product.id) }}">
+                        {% if product.images and product.images|length > 0 %}
+                            {# Find primary image #}
+                            {% set primary_image = None %}
+                            {% for image in product.images if primary_image is none and image.is_primary %}
+                                {% set primary_image = image %}
+                            {% endfor %}
+                            {% if not primary_image %}
+                                {% set primary_image = product.images[0] %}
+                            {% endif %}
+                            <img src="{{ primary_image.url }}" 
+                                 class="card-img-top" alt="{{ product.title }}">
+                        {% else %}
+                            <img src="{{ url_for('static', filename='images/products/product-placeholder.jpg') }}" 
+                                 class="card-img-top" alt="{{ product.title }}">
+                        {% endif %}
+                    </a>
+                    {% if product.is_featured %}
+                    <span class="badge bg-warning position-absolute top-0 start-0 m-2">
+                        <i class="fas fa-star"></i> مميز
+                    </span>
+                    {% endif %}
+                    <button class="btn btn-light btn-sm position-absolute top-0 end-0 m-2 favorite-btn active" 
+                            data-product-id="{{ product.id }}">
+                        <i class="fas fa-heart text-danger"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title text-truncate">{{ product.title }}</h5>
+                    <p class="card-text mb-2">
+                        <span class="text-primary fw-bold">{{ product.price | format_price }}</span>
+                        <small class="text-muted">{{ product.currency }}</small>
+                    </p>
+                    <p class="card-text">
+                        <small class="text-muted">
+                            <i class="fas fa-map-marker-alt"></i> {{ product.location }}
+                        </small>
+                    </p>
+                </div>
+                <div class="card-footer bg-transparent d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        <i class="far fa-clock"></i> {{ product.created_at | time_since }}
+                    </small>
+                    <small class="text-muted">
+                        <i class="fas fa-user"></i> {{ product.seller.name }}
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="col-12">
+        <div class="text-center py-5">
+            <i class="fas fa-heart fa-4x text-muted mb-4"></i>
+            <h3>لا توجد منتجات في المفضلة</h3>
+            <p class="text-muted mb-4">قم بتصفح المنتجات وأضف ما تفضله منها إلى المفضلة</p>
+            <a href="{{ url_for('products.search') }}" class="btn btn-primary">
+                <i class="fas fa-search me-2"></i>تصفح المنتجات
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Favorite functionality
+    document.querySelectorAll('.favorite-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const productId = this.dataset.productId;
+            
+            fetch(`/api/products/${productId}/favorite`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove product card from favorites page after removing from favorites
+                    if (!data.is_favorite) {
+                        const productCard = this.closest('.col-md-4');
+                        productCard.remove();
+                        
+                        // Check if there are any products left
+                        const remainingProducts = document.querySelectorAll('.product-card');
+                        if (remainingProducts.length === 0) {
+                            // Show empty state if no products left
+                            const row = document.querySelector('.row');
+                            row.innerHTML = `
+                                <div class="col-12">
+                                    <div class="text-center py-5">
+                                        <i class="fas fa-heart fa-4x text-muted mb-4"></i>
+                                        <h3>لا توجد منتجات في المفضلة</h3>
+                                        <p class="text-muted mb-4">قم بتصفح المنتجات وأضف ما تفضله منها إلى المفضلة</p>
+                                        <a href="{{ url_for('products.search') }}" class="btn btn-primary">
+                                            <i class="fas fa-search me-2"></i>تصفح المنتجات
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+                }
+            });
+        });
+    });
+    
+    // Get CSRF token
+    function getCsrfToken() {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+    }
+</script>
+{% endblock %}

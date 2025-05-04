@@ -1,0 +1,230 @@
+{% extends "layout.html" %}
+
+{% block title %}منتجاتي - نقطة وصل{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>منتجاتي</h1>
+            <a href="{{ url_for('products.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>إضافة منتج جديد
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <ul class="nav nav-tabs mb-4">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#active-products" data-bs-toggle="tab">منتجات نشطة</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#sold-products" data-bs-toggle="tab">منتجات مباعة</a>
+                    </li>
+                </ul>
+                
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="active-products">
+                        {% if products %}
+                            <div class="row g-4">
+                                {% for product in products %}
+                                    {% if not product.is_sold and product.is_active %}
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="card h-100 product-card">
+                                            <div class="position-relative">
+                                                <a href="{{ url_for('products.view', product_id=product.id) }}">
+                                                    {% if product.images and product.images|length > 0 %}
+                                                        {# Find primary image #}
+                                                        {% set primary_image = None %}
+                                                        {% for image in product.images if primary_image is none and image.is_primary %}
+                                                            {% set primary_image = image %}
+                                                        {% endfor %}
+                                                        {% if not primary_image %}
+                                                            {% set primary_image = product.images[0] %}
+                                                        {% endif %}
+                                                        <!-- استخدام URL مباشرة للصورة -->
+                                                        <img src="{{ primary_image.url }}" 
+                                                             class="card-img-top" alt="{{ product.title }}">
+                                                    {% else %}
+                                                        <img src="{{ url_for('static', filename='images/products/product-placeholder.jpg') }}" 
+                                                            class="card-img-top" alt="{{ product.title }}">
+                                                    {% endif %}
+                                                </a>
+                                                {% if product.is_featured %}
+                                                <span class="badge bg-warning position-absolute top-0 start-0 m-2">
+                                                    <i class="fas fa-star"></i> مميز
+                                                </span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="card-body">
+                                                <h5 class="card-title text-truncate">{{ product.title }}</h5>
+                                                <p class="card-text mb-2">
+                                                    <span class="text-primary fw-bold">{{ product.price | format_price }}</span>
+                                                    <small class="text-muted">{{ product.currency }}</small>
+                                                </p>
+                                                <p class="card-text">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-eye"></i> {{ product.views_count }} مشاهدة
+                                                    </small>
+                                                </p>
+                                            </div>
+                                            <div class="card-footer bg-transparent d-flex justify-content-between">
+                                                <a href="{{ url_for('products.edit', product_id=product.id) }}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-edit"></i> تعديل
+                                                </a>
+                                                <a href="{{ url_for('products.mark_as_sold', product_id=product.id) }}" class="btn btn-sm btn-outline-success" 
+                                                   onclick="return confirm('هل أنت متأكد من تعيين المنتج {{ product.title }} كمباع؟')">
+                                                    <i class="fas fa-check-circle"></i> تم البيع
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                        onclick="deleteProduct('{{ product.id }}', '{{ product.title }}')">
+                                                    <i class="fas fa-trash"></i> حذف
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            
+                            {% if not products|selectattr('is_sold', 'equalto', false)|selectattr('is_active', 'equalto', true)|list %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-box-open fa-4x text-muted mb-4"></i>
+                                <h3>لا توجد منتجات نشطة</h3>
+                                <p class="text-muted mb-4">أضف منتجات جديدة للبيع!</p>
+                                <a href="{{ url_for('products.create') }}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-2"></i>إضافة منتج جديد
+                                </a>
+                            </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-box-open fa-4x text-muted mb-4"></i>
+                                <h3>لا توجد منتجات</h3>
+                                <p class="text-muted mb-4">أضف منتجات للبيع!</p>
+                                <a href="{{ url_for('products.create') }}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-2"></i>إضافة منتج جديد
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="tab-pane fade" id="sold-products">
+                        {% if products|selectattr('is_sold', 'equalto', true)|list %}
+                            <div class="row g-4">
+                                {% for product in products %}
+                                    {% if product.is_sold %}
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="card h-100 product-card">
+                                            <div class="position-relative">
+                                                <a href="{{ url_for('products.view', product_id=product.id) }}">
+                                                    {% if product.images and product.images|length > 0 %}
+                                                        {# Find primary image #}
+                                                        {% set primary_image = None %}
+                                                        {% for image in product.images if primary_image is none and image.is_primary %}
+                                                            {% set primary_image = image %}
+                                                        {% endfor %}
+                                                        {% if not primary_image %}
+                                                            {% set primary_image = product.images[0] %}
+                                                        {% endif %}
+                                                        <!-- استخدام URL مباشرة للصورة -->
+                                                        <img src="{{ primary_image.url }}" 
+                                                             class="card-img-top" alt="{{ product.title }}">
+                                                    {% else %}
+                                                        <img src="{{ url_for('static', filename='images/products/product-placeholder.jpg') }}" 
+                                                             class="card-img-top" alt="{{ product.title }}">
+                                                    {% endif %}
+                                                </a>
+                                                <span class="badge bg-secondary position-absolute top-0 start-0 m-2">
+                                                    <i class="fas fa-check-circle"></i> مباع
+                                                </span>
+                                            </div>
+                                            <div class="card-body">
+                                                <h5 class="card-title text-truncate">{{ product.title }}</h5>
+                                                <p class="card-text mb-2">
+                                                    <span class="text-primary fw-bold">{{ product.price | format_price }}</span>
+                                                    <small class="text-muted">{{ product.currency }}</small>
+                                                </p>
+                                                <p class="card-text">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-eye"></i> {{ product.views_count }} مشاهدة
+                                                    </small>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-shopping-bag fa-4x text-muted mb-4"></i>
+                                <h3>لا توجد منتجات مباعة</h3>
+                                <p class="text-muted mb-4">ستظهر هنا المنتجات التي تم بيعها</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تأكيد الحذف</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="deleteForm" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <p>هل أنت متأكد من حذف المنتج "<span id="productTitle"></span>"؟</p>
+                    <p class="text-danger">لا يمكن التراجع عن هذا الإجراء.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-danger">حذف</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function deleteProduct(productId, productTitle) {
+        document.getElementById('productTitle').textContent = productTitle;
+        document.getElementById('deleteForm').action = `{{ url_for('products.delete', product_id=0) }}`.replace('0', productId);
+        
+        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        modal.show();
+    }
+
+    // Initialize Bootstrap tabs
+    document.addEventListener('DOMContentLoaded', function() {
+        var tabElms = document.querySelectorAll('a[data-bs-toggle="tab"]');
+        tabElms.forEach(function(tabElm) {
+            tabElm.addEventListener('click', function(event) {
+                event.preventDefault();
+                var tabTarget = document.querySelector(this.getAttribute('href'));
+                var activeTab = document.querySelector('.tab-pane.active');
+                var activeLink = document.querySelector('.nav-link.active');
+                
+                if (activeTab) activeTab.classList.remove('active', 'show');
+                if (activeLink) activeLink.classList.remove('active');
+                
+                tabTarget.classList.add('active', 'show');
+                this.classList.add('active');
+            });
+        });
+    });
+</script>
+{% endblock %}

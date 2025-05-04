@@ -1,0 +1,91 @@
+{% extends "layout.html" %}
+
+{% block title %}تعيين المنتج كمباع - نقطة وصل{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h2 class="mb-4">تعيين المنتج كمباع</h2>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    لتمكين المشتري من تقييم تجربة الشراء، يرجى إدخال البريد الإلكتروني للمشتري. سيتمكن المشتري من تقييم تجربة الشراء بعد إتمام عملية البيع.
+                </div>
+                
+                <div class="mb-4">
+                    <h5>معلومات المنتج</h5>
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            {% if product.images and product.images|length > 0 %}
+                                {% set primary_image = None %}
+                                {% for image in product.images if primary_image is none and image.is_primary %}
+                                    {% set primary_image = image %}
+                                {% endfor %}
+                                {% if not primary_image and product.images %}
+                                    {% set primary_image = product.images[0] %}
+                                {% endif %}
+                                
+                                {% if primary_image %}
+                                    <img src="{{ primary_image.url }}" 
+                                         alt="{{ product.title }}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
+                                {% endif %}
+                            {% else %}
+                                <img src="{{ url_for('static', filename='images/products/product-placeholder.jpg') }}" 
+                                     alt="{{ product.title }}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
+                            {% endif %}
+                        </div>
+                        <div class="col">
+                            <p class="mb-1"><strong>العنوان:</strong> {{ product.title }}</p>
+                            <p class="mb-1"><strong>السعر:</strong> {{ product.price | format_price }} {{ product.currency }}</p>
+                            <p class="mb-0"><strong>الحالة:</strong> {{ product.condition | get_condition_name }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <form method="POST" action="{{ url_for('products.mark_as_sold', product_id=product.id) }}" class="needs-validation" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="buyer_email" class="form-label">البريد الإلكتروني للمشتري</label>
+                        <input type="email" class="form-control" id="buyer_email" name="buyer_email" required>
+                        <div class="invalid-feedback">
+                            يرجى إدخال البريد الإلكتروني للمشتري
+                        </div>
+                        <small class="text-muted">
+                            يجب أن يكون المشتري مسجلاً في الموقع بهذا البريد الإلكتروني.
+                        </small>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check-circle me-2"></i>تأكيد البيع
+                        </button>
+                        <a href="{{ url_for('products.view', product_id=product.id) }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-right me-2"></i>العودة للمنتج
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Form validation
+    (function() {
+        'use strict';
+        const forms = document.querySelectorAll('.needs-validation');
+        Array.from(forms).forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    })();
+</script>
+{% endblock %}

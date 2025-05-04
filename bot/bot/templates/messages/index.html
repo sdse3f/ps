@@ -1,0 +1,195 @@
+{% extends "layout.html" %}
+
+{% block title %}المراسلات - نقطة وصل{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>المراسلات</h1>
+            <div class="d-flex align-items-center">
+                <div class="input-group me-3" style="width: 300px;">
+                    <input type="text" class="form-control" id="search-conversations" 
+                           placeholder="بحث في المحادثات...">
+                    <button class="btn btn-outline-secondary" type="button">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-filter me-2"></i>تصفية
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" href="?filter=all">
+                                <i class="fas fa-inbox me-2"></i>جميع المحادثات
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="?filter=unread">
+                                <i class="fas fa-envelope me-2"></i>غير مقروءة فقط
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="?filter=product">
+                                <i class="fas fa-shopping-bag me-2"></i>استفسارات المنتجات
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        {% if conversations %}
+        <div class="card">
+            <div class="list-group list-group-flush">
+                {% for conversation in conversations %}
+                <a href="{{ url_for('messages.chat', user_id=conversation.other_user.id) }}" 
+                   class="list-group-item list-group-item-action">
+                    <div class="d-flex align-items-center">
+                        <img src="{{ conversation.other_user.profile_image_url if conversation.other_user.profile_image_url else (conversation.other_user.profile_image | image_url(folder='users')) }}" 
+                             alt="{{ conversation.other_user.name }}" 
+                             class="rounded-circle me-3"
+                             width="50" height="50">
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h6 class="mb-1">
+                                    {{ conversation.other_user.name }}
+                                    {% if conversation.unread_count > 0 %}
+                                    <span class="badge bg-danger ms-2">{{ conversation.unread_count }}</span>
+                                    {% endif %}
+                                </h6>
+                                <small class="text-muted">
+                                    {{ conversation.last_message.created_at | time_since if conversation.last_message else 'الآن' }}
+                                </small>
+                            </div>
+                            {% if conversation.last_message %}
+                            <p class="mb-1 text-muted {% if conversation.unread_count > 0 %}fw-bold{% endif %}">
+                                {% if conversation.last_message.sender_id == current_user.id %}
+                                <i class="fas fa-reply text-primary me-1"></i>
+                                {% endif %}
+                                {{ conversation.last_message.content | truncate(70) }}
+                            </p>
+                            {% endif %}
+                            {% if conversation.product %}
+                            <small class="text-muted">
+                                <i class="fas fa-shopping-bag me-1"></i>
+                                بخصوص: {{ conversation.product.title }}
+                            </small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        
+        {% if pagination and pagination.pages > 1 %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                <!-- Previous Page -->
+                <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+                    <a class="page-link" href="{{ url_for('messages.index', page=pagination.prev_num) if pagination.has_prev else '#' }}">
+                        السابق
+                    </a>
+                </li>
+                
+                <!-- Page Numbers -->
+                {% for page in pagination.iter_pages() %}
+                    {% if page %}
+                        <li class="page-item {{ 'active' if page == pagination.page }}">
+                            <a class="page-link" href="{{ url_for('messages.index', page=page) }}">
+                                {{ page }}
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                <!-- Next Page -->
+                <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+                    <a class="page-link" href="{{ url_for('messages.index', page=pagination.next_num) if pagination.has_next else '#' }}">
+                        التالي
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        {% endif %}
+        
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-comments fa-4x text-muted mb-4"></i>
+            <h3>لا توجد محادثات</h3>
+            <p class="text-muted mb-4">ابدأ محادثة جديدة عن طريق التواصل مع البائعين</p>
+            <a href="{{ url_for('products.search') }}" class="btn btn-primary">
+                <i class="fas fa-search me-2"></i>تصفح المنتجات
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// البحث في المحادثات
+const searchInput = document.getElementById('search-conversations');
+if (searchInput) {
+    searchInput.addEventListener('input', debounce(function() {
+        const searchQuery = this.value.toLowerCase();
+        const conversations = document.querySelectorAll('.list-group-item');
+        
+        conversations.forEach(conversation => {
+            const userName = conversation.querySelector('h6').textContent.toLowerCase();
+            const messageContent = conversation.querySelector('p')?.textContent.toLowerCase() || '';
+            const productTitle = conversation.querySelector('small')?.textContent.toLowerCase() || '';
+            
+            if (userName.includes(searchQuery) || 
+                messageContent.includes(searchQuery) || 
+                productTitle.includes(searchQuery)) {
+                conversation.style.display = '';
+            } else {
+                conversation.style.display = 'none';
+            }
+        });
+    }, 300));
+}
+
+// تحديد المحادثة كمقروءة عند النقر
+document.querySelectorAll('.list-group-item').forEach(item => {
+    item.addEventListener('click', function(e) {
+        // إزالة شارة غير مقروء
+        const badge = this.querySelector('.badge');
+        if (badge) {
+            badge.remove();
+        }
+        
+        // إزالة النص البارز
+        const messageText = this.querySelector('p');
+        if (messageText && messageText.classList.contains('fw-bold')) {
+            messageText.classList.remove('fw-bold');
+        }
+    });
+});
+
+// وظيفة تأخير البحث
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+</script>
+{% endblock %}

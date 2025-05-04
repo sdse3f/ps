@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /user/
+Disallow: /auth/
+Disallow: /messages/
+
+Sitemap: https://noqtawasl.com/sitemap.xml

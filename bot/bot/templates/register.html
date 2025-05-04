@@ -1,0 +1,179 @@
+{% extends "layout.html" %}
+
+{% block title %}إنشاء حساب جديد - نقطة وصل{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10">
+        <div class="card shadow-sm">
+            <div class="card-body p-5">
+                <h2 class="text-center mb-4">إنشاء حساب جديد</h2>
+                
+                <form method="POST" action="{{ url_for('auth.register') }}" class="needs-validation" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">الاسم الكامل</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                            <div class="invalid-feedback">
+                                يرجى إدخال الاسم الكامل
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">البريد الإلكتروني</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                            <div class="invalid-feedback">
+                                يرجى إدخال بريد إلكتروني صحيح
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label">رقم الهاتف (اختياري)</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" placeholder="مثال: 0912345678">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="location" class="form-label">المحافظة</label>
+                            <select class="form-select" id="location" name="location" required>
+                                <option value="">اختر المحافظة</option>
+                                {% for location in locations %}
+                                <option value="{{ location.id }}">{{ location.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">
+                                يرجى اختيار المحافظة
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="password" class="form-label">كلمة المرور</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="password" name="password" required minlength="8">
+                                <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="invalid-feedback">
+                                كلمة المرور يجب أن تكون 8 أحرف على الأقل
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="password_confirm" class="form-label">تأكيد كلمة المرور</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="password_confirm" name="password_confirm" required>
+                                <button class="btn btn-outline-secondary" type="button" id="togglePasswordConfirm">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="invalid-feedback">
+                                كلمتا المرور غير متطابقتين
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="terms" name="terms" required>
+                            <label class="form-check-label" for="terms">
+                                أوافق على <a href="{{ url_for('main.terms') }}" target="_blank">شروط الاستخدام</a> و
+                                <a href="{{ url_for('main.privacy') }}" target="_blank">سياسة الخصوصية</a>
+                            </label>
+                            <div class="invalid-feedback">
+                                يجب الموافقة على الشروط والأحكام
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">إنشاء حساب</button>
+                    </div>
+                </form>
+                
+                <hr class="my-4">
+                
+                <div class="text-center mb-4">
+                    <span class="badge bg-light text-dark">أو سجل باستخدام</span>
+                </div>
+                
+                <!-- Social Login Buttons -->
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="{{ url_for('auth.google_login') }}" class="btn btn-outline-danger">
+                        <i class="fab fa-google"></i>
+                    </a>
+                    <a href="{{ url_for('auth.facebook_login') }}" class="btn btn-outline-primary">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <a href="{{ url_for('auth.twitter_login') }}" class="btn btn-outline-info">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                </div>
+                
+                <p class="text-center mt-4 mb-0">
+                    لديك حساب بالفعل؟ <a href="{{ url_for('auth.login') }}" class="text-decoration-none">سجل الدخول</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Toggle password visibility
+    function setupPasswordToggle(toggleId, inputId) {
+        document.getElementById(toggleId).addEventListener('click', function() {
+            const passwordInput = document.getElementById(inputId);
+            const icon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+    }
+    
+    setupPasswordToggle('togglePassword', 'password');
+    setupPasswordToggle('togglePasswordConfirm', 'password_confirm');
+    
+    // Form validation
+    (function() {
+        'use strict';
+        const forms = document.querySelectorAll('.needs-validation');
+        Array.from(forms).forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                // Custom validation for password confirmation
+                const password = form.querySelector('#password');
+                const passwordConfirm = form.querySelector('#password_confirm');
+                
+                if (password.value !== passwordConfirm.value) {
+                    passwordConfirm.setCustomValidity('كلمتا المرور غير متطابقتين');
+                } else {
+                    passwordConfirm.setCustomValidity('');
+                }
+                
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    })();
+    
+    // Reset password confirmation validation on input
+    document.getElementById('password_confirm').addEventListener('input', function() {
+        this.setCustomValidity('');
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,193 @@
+{% extends "layout.html" %}
+
+{% block title %}لوحة التحكم - نقطة وصل{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">لوحة التحكم</h1>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0 bg-primary bg-gradient rounded-circle p-3">
+                        <i class="fas fa-users fa-2x text-white"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-0">المستخدمين</h6>
+                        <h3 class="mb-0">{{ stats.users_count | format_price }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0 bg-success bg-gradient rounded-circle p-3">
+                        <i class="fas fa-shopping-bag fa-2x text-white"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-0">المنتجات</h6>
+                        <h3 class="mb-0">{{ stats.products_count | format_price }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0 bg-info bg-gradient rounded-circle p-3">
+                        <i class="fas fa-handshake fa-2x text-white"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-0">المبيعات</h6>
+                        <h3 class="mb-0">{{ stats.sales_count | format_price }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0 bg-danger bg-gradient rounded-circle p-3">
+                        <i class="fas fa-flag fa-2x text-white"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="text-muted mb-0">البلاغات</h6>
+                        <h3 class="mb-0">{{ stats.reports_count }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">إجراءات سريعة</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3 col-sm-6">
+                        <a href="{{ url_for('admin.users') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-users me-2"></i>إدارة المستخدمين
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <a href="{{ url_for('admin.products') }}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-shopping-bag me-2"></i>إدارة المنتجات
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <a href="{{ url_for('admin.categories') }}" class="btn btn-outline-info w-100">
+                            <i class="fas fa-folder me-2"></i>إدارة التصنيفات
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <a href="{{ url_for('admin.reports') }}" class="btn btn-outline-danger w-100">
+                            <i class="fas fa-flag me-2"></i>البلاغات
+                            {% if stats.pending_reports > 0 %}
+                            <span class="badge bg-danger ms-2">{{ stats.pending_reports }}</span>
+                            {% endif %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity and Pending Reports -->
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">النشاطات الأخيرة</h5>
+                <a href="{{ url_for('admin.logs') }}" class="btn btn-sm btn-outline-primary">عرض الكل</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>المستخدم</th>
+                                <th>الإجراء</th>
+                                <th>التفاصيل</th>
+                                <th>التاريخ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in recent_logs %}
+                            <tr>
+                                <td>
+                                    {% if log.user %}
+                                    <a href="{{ url_for('user.public_profile', user_id=log.user.id) }}">
+                                        {{ log.user.name }}
+                                    </a>
+                                    {% else %}
+                                    مستخدم غير معروف
+                                    {% endif %}
+                                </td>
+                                <td>{{ log.action }}</td>
+                                <td>{{ log.details }}</td>
+                                <td>{{ log.created_at | time_since }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center">لا توجد نشاطات حديثة</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Pending Reports -->
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">بلاغات قيد الانتظار</h5>
+                <a href="{{ url_for('admin.reports') }}" class="btn btn-sm btn-outline-danger">عرض الكل</a>
+            </div>
+            <div class="card-body">
+                {% if pending_reports %}
+                <div class="list-group list-group-flush">
+                    {% for report in pending_reports %}
+                    <a href="{{ url_for('admin.report_details', report_id=report.id) }}" 
+                       class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ report.reason }}</h6>
+                            <small>{{ report.created_at | time_since }}</small>
+                        </div>
+                        <p class="mb-1 text-muted">{{ report.details | truncate(50) if report.details else '' }}</p>
+                        <small class="text-muted">بواسطة: {{ report.reporter.name }}</small>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-center text-muted mb-0">لا توجد بلاغات قيد الانتظار</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

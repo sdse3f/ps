@@ -1,0 +1,264 @@
+{% extends "layout.html" %}
+
+{% block title %}نقطة وصل - أكبر منصة للبيع والشراء في سوريا{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section py-5 bg-light">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold mb-4">نقطة وصل</h1>
+                <p class="lead mb-4">أكبر منصة للبيع والشراء في سوريا. بيع واشتري كل ما تحتاجه بسهولة وأمان.</p>
+                <div class="d-flex gap-3">
+                    <a href="{{ url_for('products.search') }}" class="btn btn-primary btn-lg">تصفح المنتجات</a>
+                    <a href="{{ url_for('products.create') }}" class="btn btn-outline-primary btn-lg">أضف إعلانك</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Categories Section -->
+<section class="categories-section py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">التصنيفات الرئيسية</h2>
+        <div class="row g-4">
+            {% for category in categories %}
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{{ url_for('products.search', category_id=category.id) }}" class="text-decoration-none">
+                    <div class="card h-100 text-center border-0 shadow-sm category-card">
+                        <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                            <div class="category-icon mb-3">
+                                {% if category.slug == 'electronics' %}
+                                    <i class="fas fa-laptop fa-3x text-primary"></i>
+                                {% elif category.slug == 'vehicles' %}
+                                    <i class="fas fa-car fa-3x text-primary"></i>
+                                {% elif category.slug == 'property' %}
+                                    <i class="fas fa-home fa-3x text-primary"></i>
+                                {% elif category.slug == 'home' %}
+                                    <i class="fas fa-couch fa-3x text-primary"></i>
+                                {% elif category.slug == 'fashion' %}
+                                    <i class="fas fa-tshirt fa-3x text-primary"></i>
+                                {% elif category.slug == 'hobby' %}
+                                    <i class="fas fa-guitar fa-3x text-primary"></i>
+                                {% elif category.slug == 'sports' %}
+                                    <i class="fas fa-basketball-ball fa-3x text-primary"></i>
+                                {% elif category.slug == 'kids' %}
+                                    <i class="fas fa-baby fa-3x text-primary"></i>
+                                {% else %}
+                                    <i class="fas fa-box fa-3x text-primary"></i>
+                                {% endif %}
+                            </div>
+                            <h5 class="card-title mb-0">{{ category.name }}</h5>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Featured Products Section -->
+{% if featured_products %}
+<section class="featured-products py-5 bg-light">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>المنتجات المميزة</h2>
+            <a href="{{ url_for('products.search', featured=true) }}" class="btn btn-link">عرض الكل</a>
+        </div>
+        <div class="row g-4">
+            {% for product in featured_products %}
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="card h-100 product-card">
+                    <div class="position-relative">
+                        <a href="{{ url_for('products.view', product_id=product.id) }}">
+                            <img src="{{ product.images[0].cloudflare_id | image_url(folder='products') if product.images and product.images|length > 0 else url_for('static', filename='images/products/product-placeholder.jpg') }}" 
+                              class="card-img-top" alt="{{ product.title }}">
+                        </a>
+                        <span class="badge bg-warning position-absolute top-0 start-0 m-2">
+                            <i class="fas fa-star"></i> مميز
+                        </span>
+                        {% if current_user.is_authenticated %}
+                        <button class="btn btn-light btn-sm position-absolute top-0 end-0 m-2 favorite-btn {{ 'active' if product.is_favorite else '' }}" 
+                                data-product-id="{{ product.id }}">
+                            <i class="fas fa-heart {{ 'text-danger' if product.is_favorite else '' }}"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title text-truncate">{{ product.title }}</h5>
+                        <p class="card-text mb-2">
+                            <span class="text-primary fw-bold">{{ product.price | format_price }}</span>
+                            <small class="text-muted">{{ product.currency }}</small>
+                        </p>
+                        <p class="card-text">
+                            <small class="text-muted">
+                                <i class="fas fa-map-marker-alt"></i> {{ product.location }}
+                            </small>
+                        </p>
+                    </div>
+                    <div class="card-footer bg-transparent border-top-0">
+                        <small class="text-muted">
+                            <i class="far fa-clock"></i> {{ product.created_at | time_since }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Latest Products Section -->
+{% if latest_products %}
+<section class="latest-products py-5">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>أحدث المنتجات</h2>
+            <a href="{{ url_for('products.search') }}" class="btn btn-link">عرض الكل</a>
+        </div>
+        <div class="row g-4">
+            {% for product in latest_products %}
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="card h-100 product-card">
+                    <div class="position-relative">
+                        <a href="{{ url_for('products.view', product_id=product.id) }}">
+                            <img src="{{ product.images[0].url if product.images else url_for('static', filename='images/products/product-placeholder.jpg') }}" 
+                                 class="card-img-top" alt="{{ product.title }}">
+                        </a>
+                        {% if current_user.is_authenticated %}
+                        <button class="btn btn-light btn-sm position-absolute top-0 end-0 m-2 favorite-btn {{ 'active' if product.is_favorite else '' }}" 
+                                data-product-id="{{ product.id }}">
+                            <i class="fas fa-heart {{ 'text-danger' if product.is_favorite else '' }}"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title text-truncate">{{ product.title }}</h5>
+                        <p class="card-text mb-2">
+                            <span class="text-primary fw-bold">{{ product.price | format_price }}</span>
+                            <small class="text-muted">{{ product.currency }}</small>
+                        </p>
+                        <p class="card-text">
+                            <small class="text-muted">
+                                <i class="fas fa-map-marker-alt"></i> {{ product.location }}
+                            </small>
+                        </p>
+                    </div>
+                    <div class="card-footer bg-transparent border-top-0">
+                        <small class="text-muted">
+                            <i class="far fa-clock"></i> {{ product.created_at | time_since }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Popular Locations Section -->
+<section class="popular-locations py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-5">المحافظات الأكثر نشاطاً</h2>
+        <div class="row g-3">
+            {% for location in popular_locations %}
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{{ url_for('products.search', location=location.id) }}" class="text-decoration-none">
+                    <div class="card h-100 text-center border-0 shadow-sm location-card">
+                        <div class="card-body">
+                            <h5 class="card-title mb-0">{{ location.name }}</h5>
+                            <small class="text-muted">{{ location.count }} إعلان</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="stats-section py-5">
+    <div class="container">
+        <div class="row g-4 text-center">
+            <div class="col-6 col-md-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                        <h3 class="mb-0">{{ site_stats.users_count | format_price }}</h3>
+                        <p class="mb-0 text-muted">مستخدم نشط</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <i class="fas fa-shopping-bag fa-3x text-primary mb-3"></i>
+                        <h3 class="mb-0">{{ site_stats.products_count | format_price }}</h3>
+                        <p class="mb-0 text-muted">منتج معروض</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <i class="fas fa-handshake fa-3x text-primary mb-3"></i>
+                        <h3 class="mb-0">{{ site_stats.sales_count | format_price }}</h3>
+                        <p class="mb-0 text-muted">عملية بيع ناجحة</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <i class="fas fa-map-marked-alt fa-3x text-primary mb-3"></i>
+                        <h3 class="mb-0">{{ site_stats.regions_count }}</h3>
+                        <p class="mb-0 text-muted">محافظة</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section py-5 bg-primary text-white">
+    <div class="container text-center">
+        <h2 class="mb-4">هل لديك منتج للبيع؟</h2>
+        <p class="lead mb-4">انضم إلى آلاف البائعين وابدأ بالربح اليوم</p>
+        <a href="{{ url_for('products.create') }}" class="btn btn-light btn-lg">أضف إعلانك الآن</a>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Favorite button functionality
+    $('.favorite-btn').click(function(e) {
+        e.preventDefault();
+        const btn = $(this);
+        const productId = btn.data('product-id');
+        
+        $.ajax({
+            url: '/api/products/' + productId + '/favorite',
+            method: 'POST',
+            success: function(response) {
+                if (response.success) {
+                    btn.toggleClass('active');
+                    btn.find('i').toggleClass('text-danger');
+                }
+            },
+            error: function(xhr) {
+                if (xhr.status === 401) {
+                    window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname);
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

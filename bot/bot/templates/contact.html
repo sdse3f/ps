@@ -1,0 +1,412 @@
+{% extends "layout.html" %}
+
+{% block title %}اتصل بنا - نقطة وصل{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-3">
+                <div class="card-body p-5">
+                    <div class="text-center mb-5">
+                        <h1 class="h2 mb-3">تواصل معنا</h1>
+                        <p class="text-muted">نحن نقدر تواصلك معنا. يرجى ملء النموذج أدناه وسنرد عليك في أقرب وقت ممكن.</p>
+                    </div>
+
+                    <form id="contactForm" action="{{ url_for('main.contact_submit') }}" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <!-- الاسم -->
+                        <div class="mb-4">
+                            <label for="name" class="form-label">الاسم الكامل <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-user"></i></span>
+                                <input type="text" class="form-control" id="name" name="name" placeholder="أدخل اسمك الكامل" required>
+                            </div>
+                            <div class="invalid-feedback">
+                                يرجى إدخال اسمك الكامل
+                            </div>
+                        </div>
+                        
+                        <!-- البريد الإلكتروني -->
+                        <div class="mb-4">
+                            <label for="email" class="form-label">البريد الإلكتروني <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-envelope"></i></span>
+                                <input type="email" class="form-control" id="email" name="email" placeholder="email@example.com" required>
+                            </div>
+                            <div class="invalid-feedback">
+                                يرجى إدخال بريد إلكتروني صحيح
+                            </div>
+                        </div>
+                        
+                        <!-- رقم الهاتف (اختياري) -->
+                        <div class="mb-4">
+                            <label for="phone" class="form-label">رقم الهاتف (اختياري)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-phone"></i></span>
+                                <input type="tel" class="form-control" id="phone" name="phone" placeholder="أدخل رقم هاتفك">
+                            </div>
+                        </div>
+                        
+                        <!-- موضوع الرسالة -->
+                        <div class="mb-4">
+                            <label for="subject" class="form-label">الموضوع <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-heading"></i></span>
+                                <input type="text" class="form-control" id="subject" name="subject" placeholder="موضوع رسالتك" required>
+                            </div>
+                            <div class="invalid-feedback">
+                                يرجى إدخال موضوع الرسالة
+                            </div>
+                        </div>
+                        
+                        <!-- نص الرسالة -->
+                        <div class="mb-4">
+                            <label for="message" class="form-label">الرسالة <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-comment"></i></span>
+                                <textarea class="form-control" id="message" name="message" rows="5" placeholder="اكتب رسالتك هنا..." required></textarea>
+                            </div>
+                            <div class="invalid-feedback">
+                                يرجى كتابة رسالتك
+                            </div>
+                        </div>
+                        
+                        <!-- المرفقات -->
+                        <div class="mb-4">
+                            <label for="attachment" class="form-label">إرفاق ملف (اختياري)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-paperclip"></i></span>
+                                <input type="file" class="form-control" id="attachment" name="attachment" accept="image/*,video/mp4,video/quicktime">
+                            </div>
+                            <div class="form-text text-muted">
+                                يمكنك إرفاق صورة أو فيديو قصير (الحد الأقصى 10 ميجابايت)
+                            </div>
+                            <!-- معاينة الملف المرفق -->
+                            <div id="attachment-preview" class="mt-2 d-none">
+                                <div class="card p-2">
+                                    <div class="d-flex align-items-center">
+                                        <div id="preview-icon" class="me-2">
+                                            <i class="fas fa-file fa-2x text-primary"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-0" id="file-name">اسم الملف</h6>
+                                            <small class="text-muted" id="file-info">معلومات الملف</small>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" id="remove-attachment">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <!-- معاينة الصورة -->
+                                    <div id="image-preview-container" class="mt-2 d-none">
+                                        <img id="image-preview" src="#" alt="معاينة الصورة" class="img-fluid rounded" style="max-height: 200px">
+                                    </div>
+                                    <!-- معاينة الفيديو -->
+                                    <div id="video-preview-container" class="mt-2 d-none">
+                                        <video id="video-preview" controls class="img-fluid rounded" style="max-height: 200px">
+                                            <source src="#" type="">
+                                            المتصفح الخاص بك لا يدعم تشغيل الفيديو.
+                                        </video>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- التحقق من أنك لست روبوت -->
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="humanVerification" name="humanVerification" required>
+                                <label class="form-check-label" for="humanVerification">
+                                    أؤكد أنني لست روبوت وأوافق على سياسة الخصوصية
+                                </label>
+                                <div class="invalid-feedback">
+                                    يرجى تأكيد أنك لست روبوت
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- زر الإرسال -->
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg px-5">
+                                <i class="fas fa-paper-plane me-2"></i>إرسال الرسالة
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- معلومات الاتصال -->
+        <div class="col-lg-4 mt-4 mt-lg-0">
+            <div class="card shadow-sm border-0 rounded-3 h-100">
+                <div class="card-body p-4">
+                    <h3 class="h4 mb-4">معلومات الاتصال</h3>
+                    
+                    <div class="mb-4">
+                        <div class="d-flex mb-3">
+                            <div class="flex-shrink-0">
+                                <div class="icon-circle bg-primary text-white">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h5 class="mb-1">العنوان</h5>
+                                <p class="mb-0 text-muted">دمشق، سوريا</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="d-flex mb-3">
+                            <div class="flex-shrink-0">
+                                <div class="icon-circle bg-primary text-white">
+                                    <i class="fas fa-envelope"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h5 class="mb-1">البريد الإلكتروني</h5>
+                                <p class="mb-0 text-muted">info@example.com</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="d-flex mb-3">
+                            <div class="flex-shrink-0">
+                                <div class="icon-circle bg-primary text-white">
+                                    <i class="fas fa-phone"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h5 class="mb-1">الهاتف</h5>
+                                <p class="mb-0 text-muted">+963 XX XXX XXX</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="d-flex mb-3">
+                            <div class="flex-shrink-0">
+                                <div class="icon-circle bg-primary text-white">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h5 class="mb-1">ساعات العمل</h5>
+                                <p class="mb-0 text-muted">الأحد - الخميس: 9:00 ص - 5:00 م</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- وسائل التواصل الاجتماعي -->
+                    <div class="mt-5">
+                        <h5 class="mb-3">تابعنا على</h5>
+                        <div class="d-flex social-links">
+                            <a href="#" class="me-2 icon-circle bg-light">
+                                <i class="fab fa-facebook-f text-primary"></i>
+                            </a>
+                            <a href="#" class="me-2 icon-circle bg-light">
+                                <i class="fab fa-twitter text-primary"></i>
+                            </a>
+                            <a href="#" class="me-2 icon-circle bg-light">
+                                <i class="fab fa-instagram text-primary"></i>
+                            </a>
+                            <a href="#" class="icon-circle bg-light">
+                                <i class="fab fa-linkedin-in text-primary"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- تضمين الخريطة (اختياري) -->
+<div class="container-fluid mt-5 p-0">
+    <div class="map-container">
+        <iframe
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d106456.63289048355!2d36.26884184622761!3d33.50708176551429!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1518e6dc413cc6a7%3A0x6b9f66ebd1e394f2!2z2K_Zhdi02YLYjCDYs9mI2LHZitin!5e0!3m2!1sar!2s!4v1619200316248!5m2!1sar!2s"
+            width="100%" height="400" style="border:0;" allowfullscreen="" loading="lazy">
+        </iframe>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .icon-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .social-links .icon-circle {
+        width: 35px;
+        height: 35px;
+        transition: all 0.3s ease;
+    }
+    
+    .social-links .icon-circle:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    /* Animations */
+    .fade-in-up {
+        animation: fadeInUp 0.5s ease-out forwards;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Form validation
+    (function() {
+        'use strict';
+        
+        const forms = document.querySelectorAll('.needs-validation');
+        
+        Array.prototype.slice.call(forms).forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                
+                form.classList.add('was-validated');
+            }, false);
+        });
+    })();
+    
+    // Attachment preview
+    const attachmentInput = document.getElementById('attachment');
+    const attachmentPreview = document.getElementById('attachment-preview');
+    const fileName = document.getElementById('file-name');
+    const fileInfo = document.getElementById('file-info');
+    const previewIcon = document.getElementById('preview-icon');
+    const imagePreviewContainer = document.getElementById('image-preview-container');
+    const imagePreview = document.getElementById('image-preview');
+    const videoPreviewContainer = document.getElementById('video-preview-container');
+    const videoPreview = document.getElementById('video-preview');
+    const videoSource = document.querySelector('#video-preview source');
+    const removeAttachment = document.getElementById('remove-attachment');
+    
+    if (attachmentInput) {
+        attachmentInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const file = this.files[0];
+                
+                // Show preview section
+                attachmentPreview.classList.remove('d-none');
+                
+                // Set file name and info
+                fileName.textContent = file.name;
+                
+                // Format file size
+                let fileSize = file.size;
+                let fileSizeFormatted = '';
+                
+                if (fileSize < 1024) {
+                    fileSizeFormatted = fileSize + ' bytes';
+                } else if (fileSize < 1024 * 1024) {
+                    fileSizeFormatted = (fileSize / 1024).toFixed(2) + ' KB';
+                } else {
+                    fileSizeFormatted = (fileSize / (1024 * 1024)).toFixed(2) + ' MB';
+                }
+                
+                fileInfo.textContent = file.type + ' | ' + fileSizeFormatted;
+                
+                // Check file type
+                if (file.type.startsWith('image/')) {
+                    // Image file
+                    previewIcon.innerHTML = '<i class="fas fa-image fa-2x text-success"></i>';
+                    
+                    // Show image preview
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        imagePreview.src = e.target.result;
+                        imagePreviewContainer.classList.remove('d-none');
+                        videoPreviewContainer.classList.add('d-none');
+                    }
+                    reader.readAsDataURL(file);
+                } else if (file.type.startsWith('video/')) {
+                    // Video file
+                    previewIcon.innerHTML = '<i class="fas fa-video fa-2x text-danger"></i>';
+                    
+                    // Show video preview
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        videoSource.src = e.target.result;
+                        videoSource.type = file.type;
+                        videoPreview.load();
+                        videoPreviewContainer.classList.remove('d-none');
+                        imagePreviewContainer.classList.add('d-none');
+                    }
+                    reader.readAsDataURL(file);
+                } else {
+                    // Other file type
+                    previewIcon.innerHTML = '<i class="fas fa-file fa-2x text-primary"></i>';
+                    imagePreviewContainer.classList.add('d-none');
+                    videoPreviewContainer.classList.add('d-none');
+                }
+            }
+        });
+        
+        // Remove attachment
+        if (removeAttachment) {
+            removeAttachment.addEventListener('click', function() {
+                attachmentInput.value = '';
+                attachmentPreview.classList.add('d-none');
+                imagePreviewContainer.classList.add('d-none');
+                videoPreviewContainer.classList.add('d-none');
+            });
+        }
+    }
+    
+    // Animate elements when they come into view
+    const animateElements = document.querySelectorAll('.card');
+    
+    function checkIfInView() {
+        animateElements.forEach(element => {
+            const elementTop = element.getBoundingClientRect().top;
+            const elementBottom = element.getBoundingClientRect().bottom;
+            
+            // Check if element is in viewport
+            if (elementTop < window.innerHeight && elementBottom >= 0) {
+                element.classList.add('fade-in-up');
+            }
+        });
+    }
+    
+    // Run on page load
+    document.addEventListener('DOMContentLoaded', checkIfInView);
+    
+    // Run on scroll
+    window.addEventListener('scroll', checkIfInView);
+</script>
+{% endblock %}

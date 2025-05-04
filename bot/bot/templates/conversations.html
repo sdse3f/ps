@@ -1,0 +1,324 @@
+{% extends "layout.html" %}
+
+{% block title %}محادثاتي - نقطة وصل{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>محادثاتي</h1>
+            <div class="d-flex gap-2">
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-filter me-2"></i>فرز حسب
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" href="?sort=recent">
+                                <i class="fas fa-clock me-2"></i>الأحدث
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="?sort=unread">
+                                <i class="fas fa-envelope me-2"></i>غير المقروءة
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="?sort=product">
+                                <i class="fas fa-shopping-bag me-2"></i>حسب المنتج
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    {% if conversations %}
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="list-group list-group-flush">
+                {% for conversation in conversations %}
+                <a href="{{ url_for('messages.chat', user_id=conversation.other_user.id) }}" 
+                   class="list-group-item list-group-item-action py-3">
+                    <div class="d-flex align-items-center">
+                        <div class="position-relative me-3">
+                            <img src="{{ conversation.other_user.profile_image | image_url(folder='users') }}" 
+                                 alt="{{ conversation.other_user.name }}" 
+                                 class="rounded-circle"
+                                 width="60" height="60" style="object-fit: cover;">
+                            {% if conversation.other_user.is_online %}
+                            <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-success border border-light">
+                                <i class="fas fa-circle" style="font-size: 8px;"></i>
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h5 class="mb-1 fw-bold">{{ conversation.other_user.name }}</h5>
+                                    <p class="mb-1 text-muted {% if conversation.unread_count > 0 %}fw-bold text-dark{% endif %}">
+                                        {% if conversation.last_message %}
+                                            {% if conversation.last_message.sender_id == current_user.id %}
+                                                <i class="fas fa-reply text-primary me-1"></i>أنت: 
+                                            {% endif %}
+                                            {{ conversation.last_message.content | truncate(60) }}
+                                        {% else %}
+                                            <span class="text-muted">لا توجد رسائل بعد</span>
+                                        {% endif %}
+                                    </p>
+                                    {% if conversation.product %}
+                                    <small class="text-muted">
+                                        <i class="fas fa-shopping-bag me-1"></i>
+                                        بخصوص: {{ conversation.product.title | truncate(30) }}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                                <div class="text-end">
+                                    <small class="text-muted d-block">
+                                        {{ conversation.last_message.created_at | time_since if conversation.last_message else '' }}
+                                    </small>
+                                    {% if conversation.unread_count > 0 %}
+                                    <span class="badge bg-primary rounded-pill mt-2">
+                                        {{ conversation.unread_count }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        
+        {% if pagination and pagination.pages > 1 %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                <!-- Previous Page -->
+                <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+                    <a class="page-link" href="{{ url_for('messages.conversations', page=pagination.prev_num) if pagination.has_prev else '#' }}">
+                        السابق
+                    </a>
+                </li>
+                
+                <!-- Page Numbers -->
+                {% for page in pagination.iter_pages() %}
+                    {% if page %}
+                        <li class="page-item {{ 'active' if page == pagination.page }}">
+                            <a class="page-link" href="{{ url_for('messages.conversations', page=page) }}">
+                                {{ page }}
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                <!-- Next Page -->
+                <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+                    <a class="page-link" href="{{ url_for('messages.conversations', page=pagination.next_num) if pagination.has_next else '#' }}">
+                        التالي
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="text-center py-5">
+            <i class="fas fa-comments fa-5x text-muted mb-4"></i>
+            <h3>لا توجد محادثات بعد</h3>
+            <p class="text-muted mb-4">
+                ابدأ محادثة جديدة عن طريق التواصل مع البائعين عند الاهتمام بمنتجاتهم
+            </p>
+            <a href="{{ url_for('products.search') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-search me-2"></i>تصفح المنتجات
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Search and Filter Section -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="filterOffcanvas">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title">البحث والفلترة</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+        <form action="{{ url_for('messages.conversations') }}" method="GET">
+            <div class="mb-3">
+                <label for="search" class="form-label">بحث في المحادثات</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       placeholder="اسم المستخدم أو المنتج" value="{{ search_query or '' }}">
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">عرض:</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="filter" id="filter_all" 
+                           value="all" {{ 'checked' if not filter or filter == 'all' }}>
+                    <label class="form-check-label" for="filter_all">
+                        جميع المحادثات
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="filter" id="filter_unread" 
+                           value="unread" {{ 'checked' if filter == 'unread' }}>
+                    <label class="form-check-label" for="filter_unread">
+                        الرسائل غير المقروءة
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="filter" id="filter_product" 
+                           value="product" {{ 'checked' if filter == 'product' }}>
+                    <label class="form-check-label" for="filter_product">
+                        محادثات المنتجات
+                    </label>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="sort" class="form-label">ترتيب حسب:</label>
+                <select class="form-select" id="sort" name="sort">
+                    <option value="recent" {{ 'selected' if sort == 'recent' }}>الأحدث</option>
+                    <option value="oldest" {{ 'selected' if sort == 'oldest' }}>الأقدم</option>
+                    <option value="unread" {{ 'selected' if sort == 'unread' }}>غير المقروءة أولاً</option>
+                </select>
+            </div>
+            
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary">تطبيق</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Mark messages as read when clicking on conversation
+document.querySelectorAll('.list-group-item').forEach(item => {
+    item.addEventListener('click', function(e) {
+        const conversationId = this.dataset.conversationId;
+        if (conversationId) {
+            // Mark conversation as read via AJAX
+            fetch(`/api/messages/mark-read/${conversationId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                }
+            });
+        }
+    });
+});
+
+// Real-time search functionality
+const searchInput = document.querySelector('input[name="search"]');
+if (searchInput) {
+    searchInput.addEventListener('input', debounce(function() {
+        const searchValue = this.value.toLowerCase();
+        const conversations = document.querySelectorAll('.list-group-item');
+        
+        conversations.forEach(conv => {
+            const userName = conv.querySelector('h5').textContent.toLowerCase();
+            const messageContent = conv.querySelector('p').textContent.toLowerCase();
+            const productTitle = conv.querySelector('small')?.textContent.toLowerCase() || '';
+            
+            if (userName.includes(searchValue) || 
+                messageContent.includes(searchValue) || 
+                productTitle.includes(searchValue)) {
+                conv.style.display = '';
+            } else {
+                conv.style.display = 'none';
+            }
+        });
+    }, 300));
+}
+
+// Check for new messages periodically
+setInterval(function() {
+    fetch('/api/messages/unread-count')
+        .then(response => response.json())
+        .then(data => {
+            if (data.count > 0) {
+                // Update unread messages badge in navbar
+                const badge = document.querySelector('.navbar .badge');
+                if (badge) {
+                    badge.textContent = data.count;
+                    badge.style.display = '';
+                }
+            }
+        });
+}, 30000); // Check every 30 seconds
+
+// Debounce function for search
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Conversation hover effect */
+.list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+/* Online status indicator */
+.badge.rounded-pill.bg-success {
+    padding: 4px 6px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+    }
+}
+
+/* Unread message styling */
+.list-group-item.unread {
+    background-color: #f0f8ff;
+    border-left: 4px solid #0d6efd;
+}
+
+/* Mobile optimization */
+@media (max-width: 768px) {
+    .list-group-item img {
+        width: 45px;
+        height: 45px;
+    }
+    
+    .list-group-item h5 {
+        font-size: 1rem;
+    }
+    
+    .list-group-item p {
+        font-size: 0.9rem;
+    }
+}
+</style>
+{% endblock %}

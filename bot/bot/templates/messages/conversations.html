@@ -1,0 +1,219 @@
+{% extends "layout.html" %}
+
+{% block title %}المحادثات - نقطة وصل{% endblock %}
+
+{% block content %}
+<!-- تحسين نمط CSS المخصص -->
+<style>
+    /* تحسين شكل بطاقات المحادثات */
+    .conversation-card {
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        overflow: hidden;
+        margin-bottom: 16px;
+    }
+    
+    .conversation-card:hover {
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        transform: translateY(-3px);
+    }
+    
+    .conversation-link {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    /* تصميم صورة المستخدم */
+    .user-avatar {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 3px solid #fff;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+    
+    .conversation-card:hover .user-avatar {
+        transform: scale(1.05);
+    }
+    
+    /* تحسين شارات الإشعارات */
+    .notification-badge {
+        font-size: 0.8rem;
+        font-weight: bold;
+        padding: 0.35em 0.6em;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 5px rgba(13, 110, 253, 0.2);
+    }
+    
+    .conversation-card:hover .notification-badge {
+        transform: scale(1.1);
+    }
+    
+    /* تصميم قسم المنتج */
+    .product-section {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 10px;
+        transition: background-color 0.3s ease;
+    }
+    
+    .conversation-card:hover .product-section {
+        background-color: #e9ecef;
+    }
+    
+    .product-image {
+        width: 50px;
+        height: 50px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 2px solid #fff;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* تصميم حالة عدم وجود محادثات */
+    .empty-state {
+        padding: 50px 20px;
+        border-radius: 15px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .empty-state:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .empty-state-icon {
+        font-size: 4rem;
+        color: #6c757d;
+        margin-bottom: 20px;
+        opacity: 0.7;
+    }
+</style>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="mb-0"><i class="fas fa-comments me-2 text-primary"></i>المحادثات</h2>
+            <a href="{{ url_for('products.search') }}" class="btn btn-outline-primary">
+                <i class="fas fa-search me-2"></i>تصفح المنتجات
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    {% if conversations %}
+        {% for conversation in conversations %}
+            {% if conversation.other_user %}
+            <div class="col-12">
+                <div class="conversation-card">
+                    <a href="{{ url_for('messages.chat', user_id=conversation.other_user.id) }}" class="conversation-link">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <img src="{{ conversation.other_user.profile_image_url if conversation.other_user.profile_image_url else (conversation.other_user.profile_image | image_url(folder='users')) }}" 
+                                    alt="{{ conversation.other_user.name }}" 
+                                    class="user-avatar me-3">
+                                <div class="flex-grow-1">
+                                    <h5 class="mb-1 fw-bold">{{ conversation.other_user.name }}</h5>
+                                    <p class="mb-0 text-muted">
+                                        {% if conversation.last_message %}
+                                            {% if conversation.unread_count > 0 %}<span class="fw-medium text-dark">{% endif %}
+                                            {{ conversation.last_message.content | truncate(50) }}
+                                            {% if conversation.unread_count > 0 %}</span>{% endif %}
+                                        {% else %}
+                                            <span class="fst-italic">لا توجد رسائل</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="text-end">
+                                    {% if conversation.unread_count > 0 %}
+                                        <span class="badge bg-primary rounded-pill notification-badge mb-2">{{ conversation.unread_count }}</span>
+                                    {% endif %}
+                                    <small class="text-muted d-block">
+                                        {% if conversation.last_message %}
+                                            <i class="fas fa-clock me-1"></i>{{ conversation.last_message.created_at | time_since }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            {% if conversation.product %}
+                            <div class="mt-3">
+                                <div class="product-section d-flex align-items-center">
+                                    <div class="flex-shrink-0 me-2">
+                                        {% if conversation.product.images and conversation.product.images|length > 0 %}
+                                            {% set primary_image = None %}
+                                            {% for image in conversation.product.images if primary_image is none and image.is_primary %}
+                                                {% set primary_image = image %}
+                                            {% endfor %}
+                                            {% if not primary_image and conversation.product.images %}
+                                                {% set primary_image = conversation.product.images[0] %}
+                                            {% endif %}
+                                            
+                                            {% if primary_image %}
+                                                <img src="{{ primary_image.url }}" 
+                                                    alt="{{ conversation.product.title }}" 
+                                                    class="product-image">
+                                            {% else %}
+                                                <img src="{{ url_for('static', filename='images/products/product-placeholder.jpg') }}" 
+                                                    alt="{{ conversation.product.title }}" 
+                                                    class="product-image">
+                                            {% endif %}
+                                        {% else %}
+                                            <img src="{{ url_for('static', filename='images/products/product-placeholder.jpg') }}" 
+                                                alt="{{ conversation.product.title }}" 
+                                                class="product-image">
+                                        {% endif %}
+                                    </div>
+                                    <div class="small">
+                                        <span class="text-primary fw-medium">بخصوص:</span> 
+                                        <span class="text-dark">{{ conversation.product.title | truncate(30) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="empty-state text-center">
+                <i class="fas fa-comments empty-state-icon"></i>
+                <h3 class="mb-3 fw-bold">لا توجد محادثات</h3>
+                <p class="text-muted mb-4">ابدأ محادثة جديدة عن طريق التواصل مع البائعين</p>
+                <a href="{{ url_for('products.search') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-search me-2"></i>تصفح المنتجات
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    // إضافة تأثيرات حركية لتحسين تجربة المستخدم
+    document.addEventListener('DOMContentLoaded', function() {
+        // تأثير تدريجي عند تحميل الصفحة
+        const conversationCards = document.querySelectorAll('.conversation-card');
+        conversationCards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            
+            setTimeout(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 100 + (index * 50)); // تأخير تدريجي لكل بطاقة
+        });
+    });
+</script>
+{% endblock %}

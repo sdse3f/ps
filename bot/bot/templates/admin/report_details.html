@@ -1,0 +1,374 @@
+{% extends "layout.html" %}
+
+{% block title %}تفاصيل البلاغ - نقطة وصل{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>تفاصيل البلاغ</h1>
+            <a href="{{ url_for('admin.reports') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-right me-2"></i>العودة لقائمة البلاغات
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Report Details -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">معلومات البلاغ</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">رقم البلاغ:</div>
+                    <div class="col-md-8">{{ report.id }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">نوع البلاغ:</div>
+                    <div class="col-md-8">
+                        {% if report.product_id %}
+                            <i class="fas fa-shopping-bag me-2 text-primary"></i>بلاغ عن منتج
+                        {% elif report.reported_user_id %}
+                            <i class="fas fa-user me-2 text-danger"></i>بلاغ عن مستخدم
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">تاريخ البلاغ:</div>
+                    <div class="col-md-8">{{ report.created_at | format_date }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">حالة البلاغ:</div>
+                    <div class="col-md-8">
+                        {% if report.status == 'pending' %}
+                            <span class="badge bg-warning">قيد الانتظار</span>
+                        {% elif report.status == 'resolved' %}
+                            <span class="badge bg-success">تم الحل</span>
+                        {% elif report.status == 'rejected' %}
+                            <span class="badge bg-danger">مرفوض</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">سبب البلاغ:</div>
+                    <div class="col-md-8">{{ report.reason }}</div>
+                </div>
+                {% if report.details %}
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">تفاصيل إضافية:</div>
+                    <div class="col-md-8">{{ report.details }}</div>
+                </div>
+                {% endif %}
+                {% if report.resolved_at %}
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">تاريخ المعالجة:</div>
+                    <div class="col-md-8">{{ report.resolved_at | format_date }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Reporter Information -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">معلومات المُبلِغ</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <img src="{{ report.reporter.profile_image | image_url(folder='users') }}" 
+                         alt="{{ report.reporter.name }}" 
+                         class="rounded-circle me-3"
+                         width="50" height="50">
+                    <div>
+                        <h5 class="mb-1">
+                            <a href="{{ url_for('user.public_profile', user_id=report.reporter.id) }}" 
+                               class="text-decoration-none">
+                                {{ report.reporter.name }}
+                            </a>
+                        </h5>
+                        <p class="mb-0">
+                            <small class="text-muted">{{ report.reporter.email }}</small>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Reported Content -->
+        {% if report.product_id %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">المنتج المُبلَغ عنه</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex">
+                    <div class="flex-shrink-0">
+                        <img src="{{ report.product.images[0].cloudflare_id | image_url(folder='products') if report.product.images and report.product.images|length > 0 else url_for('static', filename='images/products/product-placeholder.jpg') }}" 
+                             alt="{{ report.product.title }}" 
+                             class="img-thumbnail"
+                             width="100" height="100"
+                             style="object-fit: cover;">
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h5 class="mb-1">
+                            <a href="{{ url_for('products.view', product_id=report.product.id) }}" 
+                               class="text-decoration-none">
+                                {{ report.product.title }}
+                            </a>
+                        </h5>
+                        <p class="mb-1">
+                            <span class="text-primary fw-bold">{{ report.product.price | format_price }}</span>
+                            <small class="text-muted">{{ report.product.currency }}</small>
+                        </p>
+                        <p class="mb-0">
+                            <small class="text-muted">البائع: 
+                                <a href="{{ url_for('user.public_profile', user_id=report.product.seller.id) }}">
+                                    {{ report.product.seller.name }}
+                                </a>
+                            </small>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if report.reported_user_id %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">المستخدم المُبلَغ عنه</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <img src="{{ report.reported_user.profile_image | image_url(folder='users') }}" 
+                         alt="{{ report.reported_user.name }}" 
+                         class="rounded-circle me-3"
+                         width="50" height="50">
+                    <div>
+                        <h5 class="mb-1">
+                            <a href="{{ url_for('user.public_profile', user_id=report.reported_user.id) }}" 
+                               class="text-decoration-none">
+                                {{ report.reported_user.name }}
+                            </a>
+                        </h5>
+                        <p class="mb-0">
+                            <small class="text-muted">{{ report.reported_user.email }}</small>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">إجراءات</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if report.status == 'pending' %}
+                    <button class="btn btn-success" onclick="updateReportStatus('resolved')">
+                        <i class="fas fa-check-circle me-2"></i>علامة كـ "تم الحل"
+                    </button>
+                    <button class="btn btn-danger" onclick="updateReportStatus('rejected')">
+                        <i class="fas fa-times-circle me-2"></i>رفض البلاغ
+                    </button>
+                    {% else %}
+                    <button class="btn btn-primary" onclick="updateReportStatus('pending')">
+                        <i class="fas fa-redo me-2"></i>إعادة فتح البلاغ
+                    </button>
+                    {% endif %}
+                </div>
+                
+                {% if report.product_id %}
+                <hr>
+                <div class="d-grid gap-2">
+                    {% if report.product.is_active %}
+                    <button class="btn btn-warning" onclick="deactivateProduct()">
+                        <i class="fas fa-ban me-2"></i>إيقاف المنتج
+                    </button>
+                    {% else %}
+                    <button class="btn btn-success" onclick="activateProduct()">
+                        <i class="fas fa-check me-2"></i>تفعيل المنتج
+                    </button>
+                    {% endif %}
+                    <button class="btn btn-outline-danger" onclick="deleteProduct()" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal">
+                        <i class="fas fa-trash me-2"></i>حذف المنتج
+                    </button>
+                </div>
+                {% endif %}
+                
+                {% if report.reported_user_id %}
+                <hr>
+                <div class="d-grid gap-2">
+                    {% if report.reported_user.is_banned %}
+                    <button class="btn btn-success" onclick="unbanUser()">
+                        <i class="fas fa-user-check me-2"></i>إلغاء حظر المستخدم
+                    </button>
+                    {% else %}
+                    <button class="btn btn-warning" onclick="banUser()">
+                        <i class="fas fa-user-slash me-2"></i>حظر المستخدم
+                    </button>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modals -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تأكيد الحذف</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>هل أنت متأكد من حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <form id="delete-product-form" method="POST" action="{{ url_for('admin.delete_product') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="product_id" value="{{ report.product.id if report.product_id else '' }}">
+                    <button type="submit" class="btn btn-danger">حذف</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Update report status
+function updateReportStatus(status) {
+    fetch('/admin/api/reports/{{ report.id }}/status', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({ status: status })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('حدث خطأ أثناء تحديث حالة البلاغ');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('حدث خطأ في الاتصال بالخادم');
+    });
+}
+
+// Product actions
+function deactivateProduct() {
+    if (confirm('هل أنت متأكد من إيقاف هذا المنتج؟')) {
+        fetch('/admin/api/products/{{ report.product.id if report.product_id else 0 }}/deactivate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('حدث خطأ أثناء إيقاف المنتج');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('حدث خطأ في الاتصال بالخادم');
+        });
+    }
+}
+
+function activateProduct() {
+    if (confirm('هل أنت متأكد من تفعيل هذا المنتج؟')) {
+        fetch('/admin/api/products/{{ report.product.id if report.product_id else 0 }}/activate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('حدث خطأ أثناء تفعيل المنتج');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('حدث خطأ في الاتصال بالخادم');
+        });
+    }
+}
+
+// User actions
+function banUser() {
+    if (confirm('هل أنت متأكد من حظر هذا المستخدم؟')) {
+        fetch('/admin/api/users/{{ report.reported_user.id if report.reported_user_id else 0 }}/ban', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('حدث خطأ أثناء حظر المستخدم');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('حدث خطأ في الاتصال بالخادم');
+        });
+    }
+}
+
+function unbanUser() {
+    if (confirm('هل أنت متأكد من إلغاء حظر هذا المستخدم؟')) {
+        fetch('/admin/api/users/{{ report.reported_user.id if report.reported_user_id else 0 }}/unban', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('حدث خطأ أثناء إلغاء حظر المستخدم');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('حدث خطأ في الاتصال بالخادم');
+        });
+    }
+}
+</script>
+{% endblock %}

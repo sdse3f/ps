@@ -1,0 +1,224 @@
+{% extends "layout.html" %}
+
+{% block title %}سجلات النظام - نقطة وصل{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>سجلات النظام</h1>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-right me-2"></i>العودة للوحة التحكم
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-3">
+                        <select class="form-select" name="action">
+                            <option value="">جميع الإجراءات</option>
+                            <option value="create" {{ 'selected' if action == 'create' }}>إنشاء</option>
+                            <option value="update" {{ 'selected' if action == 'update' }}>تحديث</option>
+                            <option value="delete" {{ 'selected' if action == 'delete' }}>حذف</option>
+                            <option value="login" {{ 'selected' if action == 'login' }}>تسجيل دخول</option>
+                            <option value="logout" {{ 'selected' if action == 'logout' }}>تسجيل خروج</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" name="entity_type">
+                            <option value="">جميع الأنواع</option>
+                            <option value="user" {{ 'selected' if entity_type == 'user' }}>مستخدم</option>
+                            <option value="product" {{ 'selected' if entity_type == 'product' }}>منتج</option>
+                            <option value="category" {{ 'selected' if entity_type == 'category' }}>تصنيف</option>
+                            <option value="report" {{ 'selected' if entity_type == 'report' }}>بلاغ</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="text" class="form-control" name="user" placeholder="اسم المستخدم" 
+                               value="{{ user_filter or '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="date" class="form-control" name="date" 
+                               value="{{ date_filter or '' }}">
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter me-2"></i>تصفية
+                        </button>
+                        <a href="{{ url_for('admin.logs') }}" class="btn btn-secondary ms-2">
+                            <i class="fas fa-redo me-2"></i>إعادة تعيين
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>التاريخ والوقت</th>
+                                <th>المستخدم</th>
+                                <th>الإجراء</th>
+                                <th>النوع</th>
+                                <th>التفاصيل</th>
+                                <th>عنوان IP</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr>
+                                <td>{{ log.created_at | format_date }}</td>
+                                <td>
+                                    {% if log.user %}
+                                    <a href="{{ url_for('user.public_profile', user_id=log.user.id) }}">
+                                        {{ log.user.name }}
+                                    </a>
+                                    {% else %}
+                                    <span class="text-muted">مستخدم غير معروف</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ log.action | action_badge_class }}">
+                                        {{ log.action | action_name }}
+                                    </span>
+                                </td>
+                                <td>{{ log.entity_type | entity_type_name }}</td>
+                                <td>
+                                    {% if log.details %}
+                                    <button class="btn btn-sm btn-outline-info" 
+                                            onclick="showDetails('{{ log.details | escape }}')">
+                                        <i class="fas fa-info-circle"></i> عرض
+                                    </button>
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td>{{ log.ip_address or '-' }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center">لا توجد سجلات</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if pagination and pagination.pages > 1 %}
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <!-- Previous Page -->
+                        <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+                            <a class="page-link" href="{{ url_for_with_args('admin.logs', page=pagination.prev_num) if pagination.has_prev else '#' }}">
+                                السابق
+                            </a>
+                        </li>
+                        
+                        <!-- Page Numbers -->
+                        {% for page in pagination.iter_pages() %}
+                            {% if page %}
+                                <li class="page-item {{ 'active' if page == pagination.page }}">
+                                    <a class="page-link" href="{{ url_for_with_args('admin.logs', page=page) }}">
+                                        {{ page }}
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        <!-- Next Page -->
+                        <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+                            <a class="page-link" href="{{ url_for_with_args('admin.logs', page=pagination.next_num) if pagination.has_next else '#' }}">
+                                التالي
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تفاصيل السجل</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <pre id="detailsContent" class="bg-light p-3 rounded"></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showDetails(details) {
+    // Unescape the details and parse JSON if possible
+    const unescapedDetails = details.replace(/&#34;/g, '"').replace(/&#39;/g, "'");
+    let formattedDetails;
+    
+    try {
+        // Try to parse as JSON
+        const jsonDetails = JSON.parse(unescapedDetails);
+        formattedDetails = JSON.stringify(jsonDetails, null, 2);
+    } catch (e) {
+        // If not JSON, display as is
+        formattedDetails = unescapedDetails;
+    }
+    
+    document.getElementById('detailsContent').textContent = formattedDetails;
+    const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
+    modal.show();
+}
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Add custom filters to prevent conflict with Bootstrap */
+.table th, .table td {
+    vertical-align: middle;
+}
+
+/* Action badge colors */
+.bg-create {
+    background-color: #28a745 !important;
+}
+.bg-update {
+    background-color: #ffc107 !important;
+}
+.bg-delete {
+    background-color: #dc3545 !important;
+}
+.bg-login {
+    background-color: #17a2b8 !important;
+}
+.bg-logout {
+    background-color: #6c757d !important;
+}
+</style>
+{% endblock %}

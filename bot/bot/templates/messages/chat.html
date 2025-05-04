@@ -1,0 +1,582 @@
+{% extends "layout.html" %}
+
+{% block title %}محادثة مع {{ user.name }} - نقطة وصل{% endblock %}
+
+{% block content %}
+<!-- تحسين نمط CSS المخصص -->
+<style>
+    /* تحسين تصميم المحادثة */
+    .chat-container {
+        height: 60vh;
+        overflow-y: auto;
+        padding: 20px;
+        background-color: #f8f9fa;
+        background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .chat-message {
+        max-width: 70%;
+        margin-bottom: 20px;
+        position: relative;
+        clear: both;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .chat-message.sent {
+        float: right;
+    }
+    
+    .chat-message.received {
+        float: left;
+    }
+    
+    .message-content {
+        padding: 12px 16px;
+        border-radius: 18px;
+        word-wrap: break-word;
+        line-height: 1.5;
+        position: relative;
+    }
+    
+    .chat-message.sent .message-content {
+        background-color: #0d6efd;
+        color: white;
+        border-bottom-right-radius: 5px;
+        box-shadow: 0 2px 5px rgba(13, 110, 253, 0.15);
+    }
+    
+    .chat-message.received .message-content {
+        background-color: white;
+        color: #212529;
+        border-bottom-left-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* بالون المحادثة - المثلث */
+    .chat-message.sent .message-content:after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        right: -8px;
+        width: 0;
+        height: 0;
+        border: 8px solid transparent;
+        border-left-color: #0d6efd;
+        border-right: 0;
+        border-bottom: 0;
+        margin-right: 0;
+    }
+    
+    .chat-message.received .message-content:after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: -8px;
+        width: 0;
+        height: 0;
+        border: 8px solid transparent;
+        border-right-color: white;
+        border-left: 0;
+        border-bottom: 0;
+        margin-left: 0;
+    }
+    
+    /* تصميم رأس المحادثة */
+    .chat-header {
+        border-radius: 15px 15px 0 0;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 15px 20px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+    
+    .user-avatar {
+        width: 50px;
+        height: 50px;
+        object-fit: cover;
+        border: 3px solid #fff;
+        border-radius: 50%;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+    
+    .user-avatar:hover {
+        transform: scale(1.05);
+    }
+    
+    /* تصميم معلومات المنتج */
+    .product-header {
+        background: rgba(248, 249, 250, 0.7);
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        padding: 12px 20px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+    }
+    
+    .product-image {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 2px solid #fff;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+    
+    .product-image:hover {
+        transform: scale(1.05);
+    }
+    
+    /* تحسين تصميم منطقة الإدخال */
+    .chat-input-container {
+        background-color: #fff;
+        border-radius: 0 0 15px 15px;
+        padding: 15px 20px;
+        box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.05);
+    }
+    
+    #message-input {
+        border-radius: 25px;
+        padding: 12px 20px;
+        resize: none;
+        overflow: hidden;
+        min-height: 46px;
+        max-height: 150px;
+        transition: all 0.3s ease;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    #message-input:focus {
+        box-shadow: inset 0 1px 5px rgba(0, 0, 0, 0.15), 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+    }
+    
+    #send-message-btn {
+        border-radius: 50%;
+        width: 46px;
+        height: 46px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 5px rgba(13, 110, 253, 0.2);
+        transition: all 0.3s ease;
+    }
+    
+    #send-message-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3);
+    }
+    
+    /* تحسين قارئة المحادثة */
+    .chat-card {
+        border-radius: 15px;
+        overflow: hidden;
+        border: none;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    }
+    
+    /* تصميم زر العودة */
+    .back-button {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f8f9fa;
+        color: #6c757d;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .back-button:hover {
+        background-color: #e9ecef;
+        transform: translateX(2px);
+    }
+    
+    /* تأثيرات حالة المستخدم */
+    .status-indicator {
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .status-online {
+        background-color: rgba(25, 135, 84, 0.1);
+        color: #198754;
+    }
+    
+    .status-offline {
+        background-color: rgba(108, 117, 125, 0.1);
+        color: #6c757d;
+    }
+    
+    /* مؤثرات إضافية */
+    .user-info:hover .user-name {
+        color: #0d6efd;
+    }
+    
+    /* توست الخطأ المحسن */
+    .toast {
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    }
+</style>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="chat-card card mb-4">
+            <!-- Chat Header -->
+            <div class="chat-header d-flex align-items-center">
+                <a href="{{ url_for('messages.conversations') }}" class="back-button me-3">
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+                <img src="{{ user.profile_image_url if user.profile_image_url else (user.profile_image | image_url(folder='users')) }}" 
+                    alt="{{ user.name }}" 
+                    class="user-avatar me-3">
+                <div class="user-info flex-grow-1">
+                    <h5 class="mb-1 user-name">
+                        <a href="{{ url_for('user.public_profile', user_id=user.id) }}" 
+                            class="text-decoration-none text-dark">
+                            {{ user.name }}
+                        </a>
+                    </h5>
+                    <div id="user-status">
+                        {% if user.is_online %}
+                        <span class="status-indicator status-online">
+                            <i class="fas fa-circle me-1 fa-xs"></i>متواجد الآن
+                        </span>
+                        {% else %}
+                        <span class="status-indicator status-offline">
+                            <i class="fas fa-circle me-1 fa-xs"></i>غير متواجد
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Product Info (if viewing chat about a product) -->
+            {% if product_id and product %}
+            <div class="product-header">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <img src="{{ product.images[0].cloudflare_id | image_url(folder='products') if product.images and product.images|length > 0 else url_for('static', filename='images/products/product-placeholder.jpg') }}" 
+                            alt="{{ product.title }}" 
+                            class="product-image">
+                    </div>
+                    <div>
+                        <h6 class="mb-1">
+                            <a href="{{ url_for('products.view', product_id=product.id) }}" 
+                               class="text-decoration-none text-dark">
+                                {{ product.title }}
+                            </a>
+                        </h6>
+                        <div class="d-flex align-items-center">
+                            <span class="text-primary fw-bold">{{ product.price | format_price }}</span>
+                            <small class="text-muted ms-1">{{ product.currency }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Chat Messages -->
+            <div class="chat-container" id="chat-messages">
+                {% for message in messages %}
+                <div class="chat-message {{ 'sent' if message.sender_id == current_user.id else 'received' }}" 
+                     data-id="{{ message.id }}">
+                    <div class="message-content">
+                        {{ message.content }}
+                    </div>
+                    <small class="text-muted d-block mt-1 {{ 'text-end' if message.sender_id == current_user.id else '' }}">
+                        <i class="fas fa-clock me-1 fa-xs"></i>{{ message.created_at | time_since }}
+                    </small>
+                </div>
+                <div style="clear: both;"></div>
+                {% endfor %}
+            </div>
+            
+            <!-- Chat Input -->
+            <div class="chat-input-container">
+                <div class="input-group">
+                    <textarea class="form-control" id="message-input" 
+                              placeholder="اكتب رسالتك..." rows="1" required></textarea>
+                    <button type="button" id="send-message-btn" class="btn btn-primary ms-2">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نقل البيانات إلى JavaScript -->
+<div id="chat-data" 
+     data-current-user-id="{{ current_user.id }}" 
+     data-receiver-id="{{ user.id }}" 
+     data-product-id="{{ product_id or '' }}">
+</div>
+
+<!-- Toast Container for Error Messages -->
+<div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1100;"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // الحصول على البيانات من data attributes
+    const chatData = document.getElementById('chat-data');
+    
+    // استخراج المعرفات وتحويلها إلى أرقام أو null إذا كانت فارغة
+    const currentUserId = chatData.dataset.currentUserId ? parseInt(chatData.dataset.currentUserId) : null;
+    const receiverId = chatData.dataset.receiverId ? parseInt(chatData.dataset.receiverId) : null;
+    const productId = chatData.dataset.productId ? parseInt(chatData.dataset.productId) : null;
+    
+    let lastMessageId = 0;
+    document.querySelectorAll('.chat-message').forEach(function(el) {
+        if (el.dataset.id) {
+            const messageId = parseInt(el.dataset.id);
+            if (messageId > lastMessageId) {
+                lastMessageId = messageId;
+            }
+        }
+    });
+    
+    // وظيفة للتحقق من الرسائل الجديدة
+    function checkNewMessages() {
+        fetch(`/messages/api/get_messages/${receiverId}?last_id=${lastMessageId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.messages.length > 0) {
+                    data.messages.forEach(message => {
+                        addMessageToChat(
+                            message.content, 
+                            message.sender_id === currentUserId,
+                            message.id
+                        );
+                        if (message.id > lastMessageId) {
+                            lastMessageId = message.id;
+                        }
+                    });
+                }
+            })
+            .catch(error => console.error('Error fetching messages:', error));
+    }
+    
+    // التحقق من الرسائل الجديدة كل 3 ثوان
+    const messageInterval = setInterval(checkNewMessages, 3000);
+    
+    // معالجة إرسال الرسائل - تغيير نهج كامل
+    const sendBtn = document.getElementById('send-message-btn');
+    const messageInput = document.getElementById('message-input');
+    
+    if (sendBtn && messageInput) {
+        sendBtn.addEventListener('click', function() {
+            sendMessage();
+        });
+        
+        // السماح بإرسال الرسالة عند الضغط على Enter
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    }
+    
+    // وظيفة إرسال الرسالة
+    function sendMessage() {
+        const message = messageInput.value.trim();
+        
+        if (message) {
+            // تنظيف حقل الإدخال
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+            
+            // إضافة الرسالة للمحادثة مؤقتًا
+            const tempId = 'temp-' + Date.now();
+            addMessageToChat(message, true, tempId);
+            
+            // إرسال الرسالة عبر AJAX
+            fetch('/messages/api/send_message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    receiver_id: receiverId,
+                    content: message,
+                    product_id: productId
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    // حذف الرسالة المؤقتة إذا فشل الإرسال
+                    const tempMessage = document.querySelector(`[data-id="${tempId}"]`);
+                    if (tempMessage) tempMessage.remove();
+                    
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // تحديث الرسالة المؤقتة بالمعرف الحقيقي
+                    const tempMessage = document.querySelector(`[data-id="${tempId}"]`);
+                    if (tempMessage) {
+                        tempMessage.dataset.id = data.message.id;
+                        
+                        // إضافة علامة تم التسليم
+                        const timeElement = tempMessage.querySelector('small');
+                        if (timeElement) {
+                            timeElement.innerHTML = '<i class="fas fa-check me-1 fa-xs"></i>تم الإرسال';
+                        }
+                    } else {
+                        // إضافة الرسالة إذا لم تكن موجودة
+                        addMessageToChat(
+                            data.message.content, 
+                            true,
+                            data.message.id
+                        );
+                    }
+                    
+                    lastMessageId = Math.max(lastMessageId, data.message.id);
+                } else {
+                    // حذف الرسالة المؤقتة إذا فشل الإرسال
+                    const tempMessage = document.querySelector(`[data-id="${tempId}"]`);
+                    if (tempMessage) tempMessage.remove();
+                    
+                    showErrorToast('فشل في إرسال الرسالة: ' + (data.message || 'خطأ غير معروف'));
+                }
+            })
+            .catch(error => {
+                console.error('Error sending message:', error);
+                
+                // حذف الرسالة المؤقتة إذا فشل الإرسال
+                const tempMessage = document.querySelector(`[data-id="${tempId}"]`);
+                if (tempMessage) tempMessage.remove();
+                
+                showErrorToast('حدث خطأ في إرسال الرسالة');
+            });
+        }
+    }
+    
+    // وظيفة لإضافة رسالة إلى المحادثة
+    function addMessageToChat(message, isSent, messageId) {
+        const chatMessages = document.getElementById('chat-messages');
+        if (chatMessages) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${isSent ? 'sent' : 'received'}`;
+            if (messageId) {
+                messageDiv.dataset.id = messageId;
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    ${message}
+                </div>
+                <small class="text-muted d-block mt-1 ${isSent ? 'text-end' : ''}">
+                    <i class="fas fa-clock me-1 fa-xs"></i>الآن
+                </small>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            
+            // إضافة عنصر لتنظيف float
+            const clearDiv = document.createElement('div');
+            clearDiv.style.clear = 'both';
+            chatMessages.appendChild(clearDiv);
+            
+            // تمرير للأسفل
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // إضافة تأثيرات حركية
+            setTimeout(() => {
+                messageDiv.style.opacity = '1';
+                messageDiv.style.transform = 'translateY(0)';
+            }, 10);
+        }
+    }
+    
+    // إظهار رسالة خطأ
+    function showErrorToast(message) {
+        const toastContainer = document.getElementById('toast-container');
+        
+        // إنشاء عنصر التنبيه
+        const toast = document.createElement('div');
+        toast.className = 'toast align-items-center text-white bg-danger border-0';
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+        toast.setAttribute('aria-atomic', 'true');
+        
+        // إضافة المحتوى
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-exclamation-circle me-2"></i>${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        `;
+        
+        // إضافة إلى الصفحة
+        toastContainer.appendChild(toast);
+        
+        // إظهار التنبيه
+        const bsToast = new bootstrap.Toast(toast, { delay: 5000 });
+        bsToast.show();
+        
+        // حذف العنصر بعد الإخفاء
+        toast.addEventListener('hidden.bs.toast', function() {
+            toast.remove();
+        });
+    }
+    
+    // التمرير التلقائي عند تحميل الصفحة
+    const chatMessages = document.getElementById('chat-messages');
+    if (chatMessages) {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // تغيير حجم حقل النص تلقائيًا
+    const textarea = document.getElementById('message-input');
+    if (textarea) {
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+        
+        // التركيز على حقل النص عند تحميل الصفحة
+        setTimeout(() => {
+            textarea.focus();
+        }, 500);
+    }
+    
+    // إضافة تأثيرات حركية للعناصر عند التحميل
+    const chatCard = document.querySelector('.chat-card');
+    if (chatCard) {
+        chatCard.style.opacity = '0';
+        chatCard.style.transform = 'translateY(20px)';
+        chatCard.style.transition = 'all 0.5s ease';
+        
+        setTimeout(() => {
+            chatCard.style.opacity = '1';
+            chatCard.style.transform = 'translateY(0)';
+        }, 100);
+    }
+    
+    // تنظيف المؤقت عند مغادرة الصفحة
+    window.addEventListener('beforeunload', function() {
+        clearInterval(messageInterval);
+    });
+});
+</script>
+{% endblock %}

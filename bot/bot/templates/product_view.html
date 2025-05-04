@@ -1,0 +1,594 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ product.title }} - نقطة وصل{% endblock %}
+
+{% block meta_description %}{{ product.description|striptags|truncate(160) }} - {{ product.condition | get_condition_name }} - {{ product.location }} - نقطة وصل{% endblock %}
+
+{% block meta_keywords %}{{ product.title }}, {{ product.condition | get_condition_name }}, {{ product.category_name }}, {{ product.location }}, نقطة وصل, بيع, شراء, سوق الكتروني, سوريا{% endblock %}
+
+{% block og_title %}{{ product.title }} - نقطة وصل{% endblock %}
+{% block og_description %}{{ product.description|striptags|truncate(160) }}{% endblock %}
+{% block og_image %}
+    {% if product.images and product.images|length > 0 %}
+        {% if primary_image %}
+            {{ primary_image.url }}
+        {% else %}
+            {{ product.images[0].url }}
+        {% endif %}
+    {% else %}
+        {{ url_for('static', filename='images/og-image.jpg', _external=True) }}
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row bg-white rounded shadow-sm p-3 mb-4">
+        <!-- Product Images - Enhanced Gallery -->
+        <div class="col-lg-7">
+            <div class="product-gallery">
+                <div class="main-image mb-3 position-relative rounded overflow-hidden shadow-sm" style="height: 400px;">
+                    <!-- Find primary image or use first image -->
+                    {% set primary_image = None %}
+                    {% for image in product.images if primary_image is none and image.is_primary %}
+                        {% set primary_image = image %}
+                    {% endfor %}
+                    {% if not primary_image and product.images and product.images|length > 0 %}
+                        {% set primary_image = product.images[0] %}
+                    {% endif %}
+                    
+                    {% if primary_image %}
+                        <img src="{{ primary_image.url }}" 
+                             alt="{{ product.title }}" class="img-fluid w-100 h-100 object-fit-cover" id="main-product-image">
+                    {% else %}
+                        <img src="{{ url_for('static', filename='images/products/product-placeholder.jpg') }}" 
+                             alt="{{ product.title }}" class="img-fluid w-100 h-100 object-fit-cover" id="main-product-image">
+                    {% endif %}
+                    
+                    <!-- Adding navigation arrows if multiple images -->
+                    {% if product.images and product.images|length > 1 %}
+                    <button class="btn btn-light position-absolute start-0 top-50 translate-middle-y rounded-circle shadow-sm" 
+                            id="prev-image" style="opacity: 0.8; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <button class="btn btn-light position-absolute end-0 top-50 translate-middle-y rounded-circle shadow-sm" 
+                            id="next-image" style="opacity: 0.8; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    {% endif %}
+                </div>
+                
+                {% if product.images and product.images|length > 1 %}
+                <div class="thumbnail-images">
+                    <div class="row g-2">
+                        {% for image in product.images %}
+                        <div class="col-2">
+                            <div class="thumbnail-wrapper rounded overflow-hidden shadow-sm {{ 'thumbnail-active' if (primary_image and primary_image.id == image.id) or (not primary_image and loop.first) }}" 
+                                 style="height: 60px; cursor: pointer;">
+                                <img src="{{ image.url }}" 
+                                     data-full-image="{{ image.url }}"
+                                     data-index="{{ loop.index0 }}"
+                                     alt="{{ product.title }} - صورة {{ loop.index }}" 
+                                     class="img-fluid w-100 h-100 object-fit-cover thumbnail-image">
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Product Details -->
+        <div class="col-lg-5">
+            <div class="product-details h-100 d-flex flex-column">
+                <h1 class="h2 mb-3 fw-bold text-primary">{{ product.title }}</h1>
+                
+                <div class="d-flex align-items-center mb-3">
+                    <span class="badge bg-{{ 'success' if product.condition == 'new' else 'info' }} me-2 px-3 py-2">
+                        {{ product.condition | get_condition_name }}
+                    </span>
+                    <span class="text-muted d-flex align-items-center">
+                        <i class="fas fa-map-marker-alt me-1"></i> {{ product.location }}
+                    </span>
+                </div>
+                
+                <h3 class="text-primary mb-4 fw-bold" style="font-size: 1.8rem;">
+                    {{ product.price | format_price }} <span class="fs-5">{{ product.currency }}</span>
+                </h3>
+                
+                <div class="mb-4 bg-light p-3 rounded">
+                    <h5 class="border-bottom pb-2 text-dark"><i class="fas fa-info-circle me-2"></i>وصف المنتج</h5>
+                    <p class="text-muted">{{ product.description | safe }}</p>
+                </div>
+                
+                {% if product.attributes %}
+                <div class="mb-4 bg-light p-3 rounded">
+                    <h5 class="border-bottom pb-2 text-dark"><i class="fas fa-clipboard-list me-2"></i>مواصفات المنتج</h5>
+                    <table class="table table-sm table-hover">
+                        {% for attribute in product.attributes %}
+                        <tr>
+                            <th class="w-25 text-secondary">{{ attribute.name }}</th>
+                            <td>{{ attribute.value }}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+                {% endif %}
+                
+                <div class="mb-4 bg-light p-3 rounded">
+                    <h5 class="border-bottom pb-2 text-dark"><i class="fas fa-user-circle me-2"></i>معلومات البائع</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="seller-image rounded-circle me-3 bg-white shadow-sm overflow-hidden" 
+                             style="width: 60px; height: 60px;">
+                            <img src="{{ product.seller.profile_image_url if product.seller.profile_image_url else (product.seller.profile_image | image_url(folder='users')) }}" 
+                                 alt="{{ product.seller.name }}" 
+                                 class="w-100 h-100 object-fit-cover">
+                        </div>
+                        <div>
+                            <h6 class="mb-0">
+                                <a href="{{ url_for('user.public_profile', user_id=product.seller.id) }}" 
+                                   class="text-decoration-none fw-bold">
+                                    {{ product.seller.name }}
+                                </a>
+                            </h6>
+                            <div class="rating">
+                                {% for i in range(1, 6) %}
+                                    <i class="fas fa-star {{ 'text-warning' if i <= product.seller.rating else 'text-muted' }}"></i>
+                                {% endfor %}
+                                <small class="text-muted">({{ product.seller.reviews_count }} تقييم)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 mt-auto">
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.id != product.seller.id %}
+                            <a href="{{ url_for('messages.chat', user_id=product.seller.id, product_id=product.id) }}" 
+                               class="btn btn-primary btn-lg rounded-pill shadow-sm">
+                                <i class="fas fa-comments me-2"></i>تواصل مع البائع
+                            </a>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <button class="btn btn-outline-primary w-100 favorite-btn {{ 'active' if product.is_favorite else '' }}" 
+                                            data-product-id="{{ product.id }}">
+                                        <i class="fas fa-heart me-2 {{ 'text-danger' if product.is_favorite else '' }}"></i>
+                                        {{ 'إزالة من المفضلة' if product.is_favorite else 'إضافة للمفضلة' }}
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    <button class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#reportModal">
+                                        <i class="fas fa-flag me-2"></i>الإبلاغ
+                                    </button>
+                                </div>
+                            </div>
+                        {% else %}
+                            <a href="{{ url_for('products.edit', product_id=product.id) }}" 
+                               class="btn btn-warning btn-lg rounded-pill shadow-sm">
+                                <i class="fas fa-edit me-2"></i>تعديل الإعلان
+                            </a>
+                        {% endif %}
+                    {% else %}
+                        <a href="{{ url_for('auth.login', next=request.path) }}" 
+                           class="btn btn-primary btn-lg rounded-pill shadow-sm">
+                            <i class="fas fa-sign-in-alt me-2"></i>سجل الدخول للتواصل مع البائع
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Product Meta Information -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="bg-white rounded shadow-sm p-3">
+                <div class="product-meta d-flex flex-wrap justify-content-between">
+                    <div class="meta-item px-3 py-2">
+                        <p class="mb-0">
+                            <i class="fas fa-folder me-2 text-primary"></i>
+                            التصنيف: <a href="{{ url_for('products.search', category_id=product.category_id) }}" class="text-decoration-none">
+                                {{ product.category_name }}
+                            </a>
+                        </p>
+                    </div>
+                    <div class="meta-item px-3 py-2">
+                        <p class="mb-0">
+                            <i class="fas fa-eye me-2 text-primary"></i>
+                            {{ product.views_count }} مشاهدة
+                        </p>
+                    </div>
+                    <div class="meta-item px-3 py-2">
+                        <p class="mb-0">
+                            <i class="fas fa-clock me-2 text-primary"></i>
+                            نشر {{ product.created_at | time_since }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Similar Products -->
+    {% if similar_products %}
+    <section class="similar-products mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="mb-0 text-primary"><i class="fas fa-th-large me-2"></i>منتجات مشابهة</h3>
+            <a href="{{ url_for('products.search', category_id=product.category_id) }}" class="btn btn-sm btn-outline-primary">عرض المزيد</a>
+        </div>
+        <div class="row g-4">
+            {% for similar_product in similar_products %}
+            <div class="col-6 col-md-3">
+                <div class="card h-100 product-card border-0 shadow-sm hover-shadow transition-all">
+                    <div class="position-relative">
+                        <a href="{{ url_for('products.view', product_id=similar_product.id) }}">
+                            {% if similar_product.images and similar_product.images|length > 0 %}
+                                {# Find primary image #}
+                                {% set sp_primary_image = None %}
+                                {% for image in similar_product.images if sp_primary_image is none and image.is_primary %}
+                                    {% set sp_primary_image = image %}
+                                {% endfor %}
+                                {% if not sp_primary_image %}
+                                    {% set sp_primary_image = similar_product.images[0] %}
+                                {% endif %}
+                                <div class="card-img-container" style="height: 180px; overflow: hidden;">
+                                    <img src="{{ sp_primary_image.url }}" 
+                                         class="card-img-top h-100 w-100 object-fit-cover" alt="{{ similar_product.title }}">
+                                </div>
+                            {% else %}
+                                <div class="card-img-container" style="height: 180px; overflow: hidden;">
+                                    <img src="{{ url_for('static', filename='images/products/product-placeholder.jpg') }}" 
+                                         class="card-img-top h-100 w-100 object-fit-cover" alt="{{ similar_product.title }}">
+                                </div>
+                            {% endif %}
+                        </a>
+                        {% if current_user.is_authenticated %}
+                        <button class="btn btn-light btn-sm position-absolute top-0 end-0 m-2 favorite-btn rounded-circle shadow-sm {{ 'active' if similar_product.is_favorite else '' }}" 
+                                data-product-id="{{ similar_product.id }}" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-heart {{ 'text-danger' if similar_product.is_favorite else '' }}"></i>
+                        </button>
+                        {% endif %}
+                        <span class="badge bg-{{ 'success' if similar_product.condition == 'new' else 'info' }} position-absolute start-0 bottom-0 m-2 px-2 py-1 rounded-pill">
+                            {{ similar_product.condition | get_condition_name }}
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title text-truncate mb-1">{{ similar_product.title }}</h5>
+                        <p class="card-text text-muted small mb-2">
+                            <i class="fas fa-map-marker-alt me-1"></i> {{ similar_product.location }}
+                        </p>
+                        <p class="card-text mb-0">
+                            <span class="text-primary fw-bold">{{ similar_product.price | format_price }}</span>
+                            <small class="text-muted">{{ similar_product.currency }}</small>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+    
+    <!-- Schema.org Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org/",
+        "@type": "Product",
+        "name": "{{ product.title }}",
+        "description": "{{ product.description|striptags }}",
+        "offers": {
+            "@type": "Offer",
+            "priceCurrency": "{{ product.currency }}",
+            "price": "{{ product.price }}",
+            "itemCondition": "{{ 'https://schema.org/NewCondition' if product.condition == 'new' else 'https://schema.org/UsedCondition' }}",
+            "availability": "{{ 'https://schema.org/InStock' if not product.is_sold else 'https://schema.org/SoldOut' }}",
+            "seller": {
+                "@type": "Person",
+                "name": "{{ product.seller.name }}"
+            }
+        },
+        {% if product.category_name %}
+        "category": "{{ product.category_name }}",
+        {% endif %}
+        {% if product.images and product.images|length > 0 %}
+        "image": [
+            {% for image in product.images %}
+            "{{ image.url }}"{{ "," if not loop.last }}
+            {% endfor %}
+        ],
+        {% endif %}
+        "offers": {
+            "@type": "Offer",
+            "priceCurrency": "{{ product.currency }}",
+            "price": "{{ product.price }}",
+            "itemCondition": "{{ 'https://schema.org/NewCondition' if product.condition == 'new' else 'https://schema.org/UsedCondition' }}",
+            "availability": "{{ 'https://schema.org/InStock' if not product.is_sold else 'https://schema.org/SoldOut' }}"
+        }
+    }
+    </script>
+</div>
+
+<!-- Report Modal - Enhanced -->
+{% if current_user.is_authenticated and current_user.id != product.seller.id %}
+<div class="modal fade" id="reportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-flag me-2"></i>الإبلاغ عن منشور</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('products.report', product_id=product.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="report-reason" class="form-label fw-bold">سبب الإبلاغ</label>
+                        <select class="form-select shadow-sm" id="report-reason" name="reason" required>
+                            <option value="">اختر سبب الإبلاغ</option>
+                            <option value="منتج محظور">منتج محظور أو غير قانوني</option>
+                            <option value="سعر غير معقول">سعر غير معقول أو مبالغ فيه</option>
+                            <option value="وصف مضلل">وصف مضلل أو غير دقيق</option>
+                            <option value="صور غير مناسبة">صور غير مناسبة</option>
+                            <option value="احتيال">نشاط احتيالي</option>
+                            <option value="آخر">سبب آخر</option>
+                        </select>
+                        <div class="invalid-feedback">
+                            يرجى اختيار سبب الإبلاغ
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="report-details" class="form-label fw-bold">تفاصيل إضافية</label>
+                        <textarea class="form-control shadow-sm" id="report-details" name="details" rows="4" 
+                                  placeholder="يرجى تقديم مزيد من التفاصيل..."></textarea>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        سيتم مراجعة البلاغ من قبل فريق الإدارة. نشكرك على مساعدتنا في الحفاظ على معايير الموقع.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-paper-plane me-1"></i> إرسال البلاغ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Enhanced styles for product page */
+    body {
+        background-color: #f8f9fa;
+    }
+    
+    .product-gallery .main-image {
+        transition: all 0.3s ease;
+    }
+    
+    .thumbnail-wrapper {
+        border: 2px solid transparent;
+        transition: all 0.2s ease;
+        opacity: 0.7;
+    }
+    
+    .thumbnail-wrapper:hover {
+        opacity: 1;
+    }
+    
+    .thumbnail-active {
+        border-color: var(--bs-primary);
+        opacity: 1;
+    }
+    
+    .transition-all {
+        transition: all 0.3s ease;
+    }
+    
+    .hover-shadow:hover {
+        transform: translateY(-5px);
+    }
+    
+    .product-card {
+        transition: all 0.3s ease;
+    }
+    
+    .product-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .meta-item {
+        border-right: 1px solid #eee;
+    }
+    
+    .meta-item:last-child {
+        border-right: none;
+    }
+    
+    @media (max-width: 768px) {
+        .meta-item {
+            border-right: none;
+            border-bottom: 1px solid #eee;
+            width: 100%;
+        }
+        
+        .meta-item:last-child {
+            border-bottom: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Enhanced Image gallery with navigation
+    document.addEventListener('DOMContentLoaded', function() {
+        const mainImage = document.getElementById('main-product-image');
+        const thumbnails = document.querySelectorAll('.thumbnail-image');
+        const thumbnailWrappers = document.querySelectorAll('.thumbnail-wrapper');
+        const prevBtn = document.getElementById('prev-image');
+        const nextBtn = document.getElementById('next-image');
+        
+        if(!thumbnails.length) return; // Exit if no thumbnails
+        
+        let currentIndex = 0;
+        
+        // Find current active thumbnail
+        thumbnailWrappers.forEach((wrapper, index) => {
+            if(wrapper.classList.contains('thumbnail-active')) {
+                currentIndex = index;
+            }
+            
+            // Click handler for thumbnails
+            wrapper.addEventListener('click', function() {
+                const thumbnailImg = wrapper.querySelector('.thumbnail-image');
+                currentIndex = parseInt(thumbnailImg.dataset.index);
+                updateGallery();
+            });
+        });
+        
+        // Update gallery display
+        function updateGallery() {
+            // Update main image with fade effect
+            mainImage.style.opacity = 0;
+            setTimeout(() => {
+                mainImage.src = thumbnails[currentIndex].dataset.fullImage;
+                mainImage.style.opacity = 1;
+            }, 200);
+            
+            // Update active state on thumbnails
+            thumbnailWrappers.forEach(wrapper => wrapper.classList.remove('thumbnail-active'));
+            thumbnailWrappers[currentIndex].classList.add('thumbnail-active');
+            
+            // Smooth scroll to thumbnail
+            thumbnailWrappers[currentIndex].scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center'
+            });
+        }
+        
+        // Navigation button handlers
+        if(prevBtn && nextBtn) {
+            prevBtn.addEventListener('click', function() {
+                currentIndex = (currentIndex - 1 + thumbnails.length) % thumbnails.length;
+                updateGallery();
+            });
+            
+            nextBtn.addEventListener('click', function() {
+                currentIndex = (currentIndex + 1) % thumbnails.length;
+                updateGallery();
+            });
+        }
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if(e.key === 'ArrowLeft') {
+                currentIndex = (currentIndex + 1) % thumbnails.length;
+                updateGallery();
+            } else if(e.key === 'ArrowRight') {
+                currentIndex = (currentIndex - 1 + thumbnails.length) % thumbnails.length;
+                updateGallery();
+            }
+        });
+        
+        // Add smooth transition to main image
+        mainImage.style.transition = 'opacity 0.2s ease';
+    });
+    
+    // Favorite functionality with enhanced feedback
+    document.querySelectorAll('.favorite-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const productId = this.dataset.productId;
+            const isCircleBtn = this.classList.contains('rounded-circle');
+            
+            // Add loading effect
+            const originalContent = this.innerHTML;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+            this.disabled = true;
+            
+            fetch(`/api/products/${productId}/favorite`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.classList.toggle('active');
+                    this.disabled = false;
+                    
+                    if (isCircleBtn) {
+                        // For circle button in similar products
+                        if (this.classList.contains('active')) {
+                            this.innerHTML = '<i class="fas fa-heart text-danger"></i>';
+                        } else {
+                            this.innerHTML = '<i class="fas fa-heart"></i>';
+                        }
+                    } else {
+                        // For regular button in product details
+                        if (this.classList.contains('active')) {
+                            this.innerHTML = '<i class="fas fa-heart text-danger me-2"></i>إزالة من المفضلة';
+                        } else {
+                            this.innerHTML = '<i class="fas fa-heart me-2"></i>إضافة للمفضلة';
+                        }
+                    }
+                } else {
+                    // Restore original content in case of error
+                    this.innerHTML = originalContent;
+                    this.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.innerHTML = originalContent;
+                this.disabled = false;
+            });
+        });
+    });
+    
+    // Get CSRF token
+    function getCsrfToken() {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+    }
+    
+    // Report form validation with enhanced feedback
+    const reportForm = document.querySelector('#reportModal form');
+    if (reportForm) {
+        reportForm.addEventListener('submit', function(e) {
+            const reasonSelect = document.getElementById('report-reason');
+            
+            if (!reasonSelect.value) {
+                e.preventDefault();
+                reasonSelect.classList.add('is-invalid');
+                return false;
+            }
+            
+            // If validation passes, show loading state
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalContent = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري الإرسال...';
+            submitBtn.disabled = true;
+            
+            // Add a timeout to prevent spam clicks
+            setTimeout(() => {
+                submitBtn.innerHTML = originalContent;
+                submitBtn.disabled = false;
+            }, 10000); // Reset after 10 seconds if the form doesn't submit
+        });
+        
+        // Reset validation on select change
+        document.getElementById('report-reason').addEventListener('change', function() {
+            if (this.value) {
+                this.classList.remove('is-invalid');
+            }
+        });
+    }
+</script>
+{% endblock %}
